@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es-AR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: head('Partido')}"></head>
+<body>
+    <header th:replace="~{fragmentos :: cabecera}"></header>
+    <main id="contenido" class="pagina">
+        <nav class="ruta" aria-label="Ruta">
+            <a th:href="@{/torneos/{t}(t=${torneo.id()})}" th:text="${torneo.nombre()}"></a>
+        </nav>
+        <div class="encabezado">
+            <h1 th:text="|${nombres[partido.localId()]} vs. ${nombres[partido.visitanteId()]}|"></h1>
+            <span class="estado" th:text="${@vistas.estado(partido.estado())}"></span>
+        </div>
+        <dl class="fechas">
+            <div>
+                <dt>Inicio</dt>
+                <dd th:text="${@vistas.horario(partido.inicio())}"></dd>
+            </div>
+            <div>
+                <dt>Cierre de pronósticos</dt>
+                <dd th:text="${@vistas.horario(partido.cierre())}"></dd>
+            </div>
+        </dl>
+        <p class="texto-secundario">Hora de Argentina</p>
+        <p th:if="${partido.resultado() != null}" class="resultado">
+            Resultado oficial
+            <strong class="marcador"
+                    th:text="|${partido.resultado().local()} – ${partido.resultado().visitante()}|"></strong>
+        </p>
+        <p th:replace="~{fragmentos :: avisos}"></p>
+        <section class="panel seccion" th:if="${participante}">
+            <h2>Mi pronóstico</h2>
+            <p th:if="${prediccion != null}" class="marcador"
+               th:text="|${prediccion.marcador().local()} – ${prediccion.marcador().visitante()}|"></p>
+            <p th:unless="${pronosticoAbierto}" class="texto-secundario">Los pronósticos están cerrados para este partido.</p>
+            <p th:if="${pronosticoAbierto && !inscrito}">
+                <a th:href="@{/torneos/{t}(t=${torneo.id()})}">Inscribite en el torneo</a> para pronosticar este partido.
+            </p>
+            <form th:if="${pronosticoAbierto && inscrito}" method="post" class="campos"
+                  th:action="${prediccion == null} ? @{/torneos/{t}/partidos/{p}/prediccion(t=${torneo.id()},p=${partido.id()})}
+                            : @{/torneos/{t}/partidos/{p}/prediccion/editar(t=${torneo.id()},p=${partido.id()})}">
+                <div th:replace="~{fragmentos :: goles(${nombres}, ${partido}, ${prediccion != null ? prediccion.marcador() : null})}"></div>
+                <button type="submit" class="boton primario"
+                        th:text="${prediccion == null ? 'Guardar pronóstico' : 'Actualizar pronóstico'}"></button>
+            </form>
+        </section>
+        <div class="acciones">
+            <a class="boton" th:href="@{/torneos/{t}/ranking(t=${torneo.id()})}">Ver clasificación</a>
+            <a class="boton" th:if="${administrador}"
+               th:href="@{/admin/torneos/{t}/partidos/{p}(t=${torneo.id()},p=${partido.id()})}">Administrar partido</a>
+        </div>
+    </main>
+</body>
+</html>

@@ -1,0 +1,46 @@
+name: Verificación Java
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Probar, medir cobertura y ejecutar SAST
+        run: mvn -B -ntp verify -Psast,sca
+      - name: Analizar dependencias con OSV-Scanner
+        run: |
+          scanner="$RUNNER_TEMP/osv-scanner"
+          curl --fail --silent --show-error --location --retry 3 \
+            https://github.com/google/osv-scanner/releases/download/v2.7.1/osv-scanner_linux_amd64 \
+            --output "$scanner"
+          echo "fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8  $scanner" | sha256sum --check
+          chmod +x "$scanner"
+          "$scanner" scan source --format=json --output-file=target/osv.json -L target/bom.json
+      - name: Guardar informes
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: informes-verificacion
+          path: |
+            target/surefire-reports/
+            target/site/jacoco/
+            target/spotbugsXml.xml
+            target/bom.json
+            target/osv.json

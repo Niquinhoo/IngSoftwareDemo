@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="es-AR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: head('No se pudo completar la solicitud')}"></head>
+<body>
+    <header th:replace="~{fragmentos :: cabecera}"></header>
+    <main id="contenido" class="pagina">
+        <h1>No se pudo completar la solicitud</h1>
+        <p class="error" role="alert" th:text="${mensaje}"></p>
+        <a class="boton" th:href="@{/}">Volver a torneos</a>
+    </main>
+</body>
+</html>

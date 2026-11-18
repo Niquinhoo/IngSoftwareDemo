@@ -1,0 +1,7 @@
+/target/
+/datos/
+/.idea/
+/.vscode/
+*.iml
+.env
+.scannerwork/

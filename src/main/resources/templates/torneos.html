@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es-AR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: head('Torneos')}"></head>
+<body>
+    <header th:replace="~{fragmentos :: cabecera}"></header>
+    <main id="contenido" class="pagina">
+        <div class="encabezado">
+            <h1>Torneos</h1>
+            <a class="boton primario" th:if="${administrador}" th:href="@{/admin/torneos/nuevo}">Crear torneo</a>
+        </div>
+        <p th:replace="~{fragmentos :: avisos}"></p>
+        <p class="panel vacio" th:if="${torneos.isEmpty()}">Todavía no hay torneos disponibles.</p>
+        <ul class="lista" th:unless="${torneos.isEmpty()}">
+            <li class="fila" th:each="torneo : ${torneos}">
+                <div>
+                    <h2><a th:href="@{/torneos/{t}(t=${torneo.id()})}" th:text="${torneo.nombre()}"></a></h2>
+                    <p class="texto-secundario"
+                       th:text="|${@vistas.fecha(torneo.inicio())} al ${@vistas.fecha(torneo.fin())}|"></p>
+                </div>
+                <span class="estado" th:text="${@vistas.estado(torneo.estado())}"></span>
+            </li>
+        </ul>
+    </main>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es-AR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: head(${torneo.nombre()})}"></head>
+<body>
+    <header th:replace="~{fragmentos :: cabecera}"></header>
+    <main id="contenido" class="pagina">
+        <nav class="ruta" aria-label="Ruta"><a th:href="@{/}">Torneos</a></nav>
+        <div class="encabezado">
+            <h1 th:text="${torneo.nombre()}"></h1>
+            <span class="estado" th:text="${@vistas.estado(torneo.estado())}"></span>
+        </div>
+        <p class="texto-secundario" th:text="|${@vistas.fecha(torneo.inicio())} al ${@vistas.fecha(torneo.fin())}|"></p>
+        <p th:if="${!#strings.isEmpty(torneo.descripcion())}" th:text="${torneo.descripcion()}"></p>
+        <p>Regla de puntuación <strong th:text="${@vistas.regla(torneo.regla())}"></strong></p>
+        <p th:replace="~{fragmentos :: avisos}"></p>
+        <div class="acciones">
+            <form th:if="${inscripcionAbierta && !inscrito}" method="post"
+                  th:action="@{/torneos/{t}/inscripcion(t=${torneo.id()})}">
+                <button type="submit" class="boton primario">Inscribirme</button>
+            </form>
+            <span class="estado" th:if="${inscrito}">Ya estás inscripto</span>
+            <a class="boton" th:href="@{/torneos/{t}/ranking(t=${torneo.id()})}">Ver clasificación</a>
+            <a class="boton" th:if="${administrador}" th:href="@{/admin/torneos/{t}(t=${torneo.id()})}">
+                Administrar torneo
+            </a>
+        </div>
+        <section>
+            <div class="encabezado seccion">
+                <h2>Partidos</h2>
+                <p class="texto-secundario" th:unless="${partidos.isEmpty()}">Hora de Argentina</p>
+            </div>
+            <p class="panel vacio" th:if="${partidos.isEmpty()}">Todavía no hay partidos programados.</p>
+            <ul class="lista" th:unless="${partidos.isEmpty()}">
+                <li class="fila" th:each="partido : ${partidos}">
+                    <div>
+                        <h3>
+                            <a th:href="@{/torneos/{t}/partidos/{p}(t=${torneo.id()},p=${partido.id()})}"
+                               th:text="|${nombres[partido.localId()]} vs. ${nombres[partido.visitanteId()]}|"></a>
+                        </h3>
+                        <p class="texto-secundario" th:text="${@vistas.horario(partido.inicio())}"></p>
+                    </div>
+                    <div class="indicadores">
+                        <span th:if="${partido.resultado() != null}" class="marcador"
+                              th:text="|${partido.resultado().local()} – ${partido.resultado().visitante()}|"></span>
+                        <span class="estado" th:text="${@vistas.estado(partido.estado())}"></span>
+                    </div>
+                </li>
+            </ul>
+        </section>
+    </main>
+</body>
+</html>

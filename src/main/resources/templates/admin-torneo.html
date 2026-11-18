@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es-AR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: head('Administrar torneo')}"></head>
+<body>
+    <header th:replace="~{fragmentos :: cabecera}"></header>
+    <main id="contenido" class="pagina">
+        <nav class="ruta" aria-label="Ruta">
+            <a th:href="@{/torneos/{t}(t=${torneo.id()})}" th:text="${torneo.nombre()}"></a>
+        </nav>
+        <div class="encabezado">
+            <h1>Administrar torneo</h1>
+            <span class="estado" th:text="${@vistas.estado(torneo.estado())}"></span>
+        </div>
+        <p th:replace="~{fragmentos :: avisos}"></p>
+        <div class="acciones">
+            <a class="boton" th:href="@{/admin/torneos/{t}/editar(t=${torneo.id()})}">Editar datos del torneo</a>
+        </div>
+        <div class="columnas">
+            <section id="equipos" class="panel">
+                <h2>Equipos</h2>
+                <ul class="edicion" th:unless="${equipos.isEmpty()}">
+                    <li th:each="equipo : ${equipos}">
+                        <span th:unless="${editable}" th:text="${equipo.nombre()}"></span>
+                        <form th:if="${editable}" class="fila-form" method="post"
+                              th:action="@{/admin/torneos/{t}/equipos/{e}(t=${torneo.id()},e=${equipo.id()})}">
+                            <label>
+                                <span class="solo-lector" th:text="|Nombre de ${equipo.nombre()}|"></span>
+                                <input name="nombre" maxlength="100" required th:value="${equipo.nombre()}">
+                            </label>
+                            <button class="boton" type="submit" th:aria-label="|Guardar nombre de ${equipo.nombre()}|">Guardar</button>
+                        </form>
+                    </li>
+                </ul>
+                <form th:if="${editable}" method="post" class="campos"
+                      th:action="@{/admin/torneos/{t}/equipos(t=${torneo.id()})}">
+                    <label for="nombreEquipo">Nombre del nuevo equipo</label>
+                    <input id="nombreEquipo" name="nombre" maxlength="100" required>
+                    <button class="boton primario" type="submit">Agregar equipo</button>
+                </form>
+            </section>
+            <section class="panel" th:if="${editable}">
+                <h2>Programar partido</h2>
+                <p class="texto-secundario" th:if="${equipos.size() < 2}">Agregá al menos dos equipos para programar un partido.</p>
+                <form method="post" class="campos" th:if="${equipos.size() >= 2}"
+                      th:action="@{/admin/torneos/{t}/partidos(t=${torneo.id()})}">
+                    <label for="local">Equipo local</label>
+                    <select id="local" name="local" required>
+                        <option value="">Elegí un equipo</option>
+                        <option th:each="equipo : ${equipos}" th:value="${equipo.id()}" th:text="${equipo.nombre()}"></option>
+                    </select>
+                    <label for="visitante">Equipo visitante</label>
+                    <select id="visitante" name="visitante" required>
+                        <option value="">Elegí un equipo</option>
+                        <option th:each="equipo : ${equipos}" th:value="${equipo.id()}" th:text="${equipo.nombre()}"></option>
+                    </select>
+                    <label for="inicio">Inicio (hora de Argentina)</label>
+                    <input id="inicio" name="inicio" type="datetime-local" required
+                           th:min="|${torneo.inicio()}T00:00|" th:max="|${torneo.fin()}T23:59|">
+                    <label class="casilla"><input name="esFinal" type="checkbox" value="true"> Es una final</label>
+                    <button class="boton primario" type="submit">Programar partido</button>
+                </form>
+            </section>
+        </div>
+        <section class="seccion">
+            <h2>Partidos</h2>
+            <p class="panel vacio" th:if="${partidos.isEmpty()}">Todavía no hay partidos programados.</p>
+            <ul class="lista" th:unless="${partidos.isEmpty()}">
+                <li class="fila" th:each="partido : ${partidos}">
+                    <div>
+                        <h3>
+                            <a th:href="@{/admin/torneos/{t}/partidos/{p}(t=${torneo.id()},p=${partido.id()})}"
+                               th:text="|${nombres[partido.localId()]} vs. ${nombres[partido.visitanteId()]}|"></a>
+                        </h3>
+                        <p class="texto-secundario" th:text="${@vistas.horario(partido.inicio())}"></p>
+                    </div>
+                    <span class="estado" th:text="${@vistas.estado(partido.estado())}"></span>
+                </li>
+            </ul>
+        </section>
+    </main>
+</body>
+</html>

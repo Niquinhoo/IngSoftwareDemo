@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es-AR" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(titulo)">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="|${titulo} · Prode|">Prode</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" th:href="@{/estilos.css}">
+</head>
+<body>
+    <header class="cabecera" th:fragment="cabecera">
+        <a class="saltar" href="#contenido">Saltar al contenido</a>
+        <div class="barra">
+            <a class="marca" th:href="@{/}">Prode</a>
+            <nav aria-label="Navegación principal" th:if="${sesionIniciada}">
+                <a th:href="@{/}">Torneos</a>
+                <form method="post" th:action="@{/logout}">
+                    <button type="submit" class="boton barra-boton">Cerrar sesión</button>
+                </form>
+            </nav>
+        </div>
+    </header>
+    <p class="aviso" role="status" th:fragment="avisos" th:if="${aviso}" th:text="${aviso}"></p>
+    <div class="goles" th:fragment="goles(nombres, partido, marcador)">
+        <label for="golesLocal">
+            <span th:text="|Goles de ${nombres[partido.localId()]}|">Goles del local</span>
+            <input id="golesLocal" type="number" name="golesLocal" min="0" max="99" required
+                   th:value="${marcador != null ? marcador.local() : null}">
+        </label>
+        <label for="golesVisitante">
+            <span th:text="|Goles de ${nombres[partido.visitanteId()]}|">Goles del visitante</span>
+            <input id="golesVisitante" type="number" name="golesVisitante" min="0" max="99" required
+                   th:value="${marcador != null ? marcador.visitante() : null}">
+        </label>
+    </div>
+</body>
+</html>

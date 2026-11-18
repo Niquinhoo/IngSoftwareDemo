@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es-AR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: head('Crear una cuenta')}"></head>
+<body>
+    <header th:replace="~{fragmentos :: cabecera}"></header>
+    <main id="contenido" class="acceso">
+        <section class="panel">
+            <h1>Crear una cuenta</h1>
+            <p class="error" role="alert" th:if="${errorFormulario}" th:text="${errorFormulario}"></p>
+            <form method="post" th:action="@{/registro}" class="campos">
+                <label for="email">Correo electrónico</label>
+                <input id="email" type="email" name="email" required maxlength="254" autocomplete="username"
+                       th:value="${email}">
+                <label for="password">Contraseña</label>
+                <input id="password" type="password" name="password" required minlength="8" maxlength="72"
+                       aria-describedby="ayuda-password" autocomplete="new-password">
+                <small id="ayuda-password">Usá al menos 8 caracteres. El máximo es de 72 bytes.</small>
+                <button type="submit" class="boton primario">Registrarme</button>
+            </form>
+            <p class="acceso-enlace"><a th:href="@{/login}">Ya tengo una cuenta</a></p>
+        </section>
+    </main>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="es-AR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: head('No se pudo completar la solicitud')}"></head>
+<body>
+    <header th:replace="~{fragmentos :: cabecera}"></header>
+    <main id="contenido" class="pagina">
+        <h1>No se pudo completar la solicitud</h1>
+        <p class="error" role="alert" th:switch="${status}">
+            <span th:case="400">Revisá los datos ingresados.</span>
+            <span th:case="403">La sesión no permite realizar esta acción. Si venció, volvé a iniciar sesión.</span>
+            <span th:case="404">No encontramos la página solicitada.</span>
+            <span th:case="*">Volvé a intentarlo.</span>
+        </p>
+        <a class="boton" th:href="@{/}">Volver a torneos</a>
+    </main>
+</body>
+</html>

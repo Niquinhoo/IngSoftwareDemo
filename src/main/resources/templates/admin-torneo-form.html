@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es-AR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: head(${torneo == null ? 'Crear torneo' : 'Editar torneo'})}"></head>
+<body>
+    <header th:replace="~{fragmentos :: cabecera}"></header>
+    <main id="contenido" class="pagina" th:with="edicion=${torneo != null}">
+        <nav class="ruta" aria-label="Ruta">
+            <a th:if="${edicion}" th:href="@{/admin/torneos/{t}(t=${torneo.id()})}">Administrar torneo</a>
+            <a th:unless="${edicion}" th:href="@{/}">Torneos</a>
+        </nav>
+        <h1 th:text="${edicion ? 'Editar torneo' : 'Crear torneo'}"></h1>
+        <form class="panel campos seccion" method="post"
+              th:action="${edicion} ? @{/admin/torneos/{t}(t=${torneo.id()})} : @{/admin/torneos}">
+            <label for="nombre">Nombre</label>
+            <input id="nombre" name="nombre" maxlength="100" required th:value="${edicion ? torneo.nombre() : null}">
+            <label for="descripcion">Descripción (opcional)</label>
+            <textarea id="descripcion" name="descripcion" rows="3" maxlength="500"
+                      th:text="${edicion ? torneo.descripcion() : ''}"></textarea>
+            <div class="dos-campos">
+                <label for="inicio">Fecha de inicio
+                    <input id="inicio" name="inicio" type="date" required th:value="${edicion ? torneo.inicio() : null}">
+                </label>
+                <label for="fin">Fecha de finalización
+                    <input id="fin" name="fin" type="date" required th:value="${edicion ? torneo.fin() : null}">
+                </label>
+            </div>
+            <div class="dos-campos">
+                <label for="estado">Estado
+                    <select id="estado" name="estado" required>
+                        <option th:each="estado : ${estados}" th:value="${estado.name()}" th:text="${@vistas.estado(estado)}"
+                                th:selected="${edicion && estado == torneo.estado()}"></option>
+                    </select>
+                </label>
+                <label for="regla">Regla de puntuación
+                    <select id="regla" name="regla" required>
+                        <option th:each="regla : ${reglas}" th:value="${regla.name()}" th:text="${@vistas.regla(regla)}"
+                                th:selected="${edicion && regla == torneo.regla()}"></option>
+                    </select>
+                </label>
+            </div>
+            <button class="boton primario" type="submit" th:text="${edicion ? 'Guardar cambios' : 'Crear torneo'}"></button>
+        </form>
+    </main>
+</body>
+</html>

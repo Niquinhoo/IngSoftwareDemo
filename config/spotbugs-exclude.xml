@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Las rutas HTTP forman parte del prototipo y su autorización se prueba en FlujoWebTest. -->
+    <Match>
+        <Package name="ar.edu.ingsoftware.prode.web"/>
+        <Bug pattern="SPRING_ENDPOINT"/>
+    </Match>
+</FindBugsFilter>

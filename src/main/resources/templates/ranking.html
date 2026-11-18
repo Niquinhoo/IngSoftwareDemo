@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es-AR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: head('Clasificación')}"></head>
+<body>
+    <header th:replace="~{fragmentos :: cabecera}"></header>
+    <main id="contenido" class="pagina">
+        <nav class="ruta" aria-label="Ruta">
+            <a th:href="@{/torneos/{t}(t=${torneo.id()})}" th:text="${torneo.nombre()}"></a>
+        </nav>
+        <h1>Clasificación</h1>
+        <p>Regla de puntuación <strong th:text="${@vistas.regla(torneo.regla())}"></strong></p>
+        <p class="panel vacio seccion" th:if="${ranking.isEmpty()}">Todavía no hay participantes en la clasificación.</p>
+        <div class="tabla seccion" th:unless="${ranking.isEmpty()}">
+            <table aria-label="Clasificación del torneo">
+                <thead>
+                    <tr>
+                        <th scope="col">Puesto</th>
+                        <th scope="col">Participante</th>
+                        <th scope="col">Puntos</th>
+                        <th scope="col">Exactos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="fila, iteracion : ${ranking}">
+                        <td th:text="${iteracion.count}"></td>
+                        <th scope="row" th:text="${fila.participante()}"></th>
+                        <td th:text="${fila.puntos()}"></td>
+                        <td th:text="${fila.exactos()}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>

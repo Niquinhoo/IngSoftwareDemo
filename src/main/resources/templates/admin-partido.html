@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es-AR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: head('Administrar partido')}"></head>
+<body>
+    <header th:replace="~{fragmentos :: cabecera}"></header>
+    <main id="contenido" class="pagina">
+        <nav class="ruta" aria-label="Ruta">
+            <a th:href="@{/admin/torneos/{t}(t=${torneo.id()})}" th:text="|Administrar ${torneo.nombre()}|"></a>
+        </nav>
+        <div class="encabezado">
+            <h1 th:text="|${nombres[partido.localId()]} vs. ${nombres[partido.visitanteId()]}|"></h1>
+            <span class="estado" th:text="${@vistas.estado(partido.estado())}"></span>
+        </div>
+        <dl class="fechas">
+            <div>
+                <dt>Inicio</dt>
+                <dd th:text="${@vistas.horario(partido.inicio())}"></dd>
+            </div>
+            <div>
+                <dt>Cierre de pronósticos</dt>
+                <dd th:text="${@vistas.horario(partido.cierre())}"></dd>
+            </div>
+        </dl>
+        <p class="texto-secundario">Hora de Argentina</p>
+        <p th:replace="~{fragmentos :: avisos}"></p>
+        <div class="acciones">
+            <form th:if="${puedeIniciar}" method="post"
+                  th:action="@{/admin/torneos/{t}/partidos/{p}/iniciar(t=${torneo.id()},p=${partido.id()})}">
+                <button class="boton primario" type="submit">Iniciar partido</button>
+            </form>
+            <form th:if="${puedeSuspender}" method="post"
+                  th:action="@{/admin/torneos/{t}/partidos/{p}/suspender(t=${torneo.id()},p=${partido.id()})}">
+                <button class="boton" type="submit">Suspender partido</button>
+            </form>
+            <a class="boton" th:href="@{/torneos/{t}/partidos/{p}(t=${torneo.id()},p=${partido.id()})}">Ver partido</a>
+            <a class="boton" th:href="@{/torneos/{t}/ranking(t=${torneo.id()})}">Ver clasificación</a>
+        </div>
+        <p class="texto-secundario" th:if="${porComenzar && !puedeIniciar}">
+            Podés iniciar el partido a partir de la hora programada.
+        </p>
+        <section class="panel seccion" th:if="${puedeReprogramar}">
+            <h2>Reprogramar partido</h2>
+            <p class="texto-secundario">El cierre de pronósticos puede adelantarse si el nuevo inicio es anterior.</p>
+            <form class="campos" method="post"
+                  th:action="@{/admin/torneos/{t}/partidos/{p}/reprogramar(t=${torneo.id()},p=${partido.id()})}">
+                <label for="inicio">Nuevo inicio (hora de Argentina)</label>
+                <input id="inicio" name="inicio" type="datetime-local" required
+                       th:min="|${torneo.inicio()}T00:00|" th:max="|${torneo.fin()}T23:59|"
+                       th:value="${@vistas.horaFormulario(partido.inicio())}">
+                <button class="boton primario" type="submit">Reprogramar</button>
+            </form>
+        </section>
+        <section class="panel seccion" th:if="${puedePublicar}">
+            <h2>Resultado oficial</h2>
+            <form class="campos" method="post"
+                  th:action="@{/admin/torneos/{t}/partidos/{p}/resultado(t=${torneo.id()},p=${partido.id()})}">
+                <div th:replace="~{fragmentos :: goles(${nombres}, ${partido}, ${partido.resultado()})}"></div>
+                <button class="boton primario" type="submit"
+                        th:text="${partido.resultado() == null ? 'Publicar resultado' : 'Corregir resultado'}"></button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>
