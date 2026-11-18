@@ -63,6 +63,10 @@ java -cp target/classes ar.edu.ingsoftware.prode.puntaje.laboratorio.Laboratorio
 
 Maven ejecuta los controles de calidad localmente y descarga sus dependencias de Maven Central. OSV-Scanner consulta un catálogo público de avisos. [Guía de calidad](docs/03-deuda-y-calidad.md) · [Guía de SCA y SAST](docs/04-sca-y-sast.md) · [Workflow de verificación](.github/workflows/verificacion.yml) · [20 casos de puntuación](src/test/java/ar/edu/ingsoftware/prode/puntaje/PuntuacionTest.java)
 
+### Informes en PDF
+
+El paquete de la corrida del 18 de noviembre de 2026 contiene 39 fichas JUnit, seis informes de controles y un índice. [Descargar el ZIP con los 46 PDF](https://github.com/Niquinhoo/IngSoftwareDemo/releases/download/informes-2026-11-18/IngSoftwareDemo-2026-11-18.zip)
+
 ## Trabajo en equipo
 
 - Revisen el [índice de guías](docs/README.md) y elijan un tema por persona. Cada guía trae un ejercicio y un autocontrol.
