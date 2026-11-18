@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SeguridadWeb.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">IngSoftwareDemo</a> &gt; <a href="index.source.html" class="el_package">ar.edu.ingsoftware.prode.web</a> &gt; <span class="el_source">SeguridadWeb.java</span></div><h1>SeguridadWeb.java</h1><pre class="source lang-java linenums">package ar.edu.ingsoftware.prode.web;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+<span class="fc" id="L14">class SeguridadWeb {</span>
+    @Bean
+    SecurityFilterChain filtros(HttpSecurity http) {
+<span class="fc" id="L17">        return http.authorizeHttpRequests(rutas -&gt; rutas</span>
+<span class="fc" id="L18">                        .requestMatchers(&quot;/login&quot;, &quot;/registro&quot;, &quot;/estilos.css&quot;, &quot;/error&quot;).permitAll()</span>
+<span class="fc" id="L19">                        .requestMatchers(&quot;/admin/**&quot;).hasRole(&quot;ADMIN&quot;)</span>
+<span class="fc" id="L20">                        .requestMatchers(HttpMethod.POST, &quot;/torneos/**&quot;).hasRole(&quot;USER&quot;)</span>
+<span class="fc" id="L21">                        .anyRequest().authenticated())</span>
+<span class="fc" id="L22">                .formLogin(formulario -&gt; formulario</span>
+<span class="fc" id="L23">                        .loginPage(&quot;/login&quot;)</span>
+<span class="fc" id="L24">                        .usernameParameter(&quot;email&quot;)</span>
+<span class="fc" id="L25">                        .defaultSuccessUrl(&quot;/&quot;))</span>
+<span class="fc" id="L26">                .logout(salida -&gt; salida.logoutSuccessUrl(&quot;/login?salida&quot;))</span>
+<span class="fc" id="L27">                .build();</span>
+    }
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+<span class="fc" id="L32">        return new BCryptPasswordEncoder() {</span>
+            @Override
+            protected boolean matchesNonNull(String password, String hash) {
+<span class="pc bpc" id="L35" title="1 of 4 branches missed.">                return Cuentas.passwordValida(password) &amp;&amp; super.matchesNonNull(password, hash);</span>
+            }
+        };
+    }
+
+    @Bean
+    ApplicationRunner crearAdministrador(Cuentas cuentas,
+            @Value(&quot;${prode.admin.email:}&quot;) String email,
+            @Value(&quot;${prode.admin.password:}&quot;) String password) {
+<span class="fc" id="L44">        return args -&gt; cuentas.prepararAdministrador(email, password);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.16.202610240946</span></div></body></html>

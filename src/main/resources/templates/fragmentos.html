@@ -14,6 +14,7 @@
             <a class="marca" th:href="@{/}">Prode</a>
             <nav aria-label="Navegación principal" th:if="${sesionIniciada}">
                 <a th:href="@{/}">Torneos</a>
+                <a th:if="${@environment.matchesProfiles('demo')}" th:href="@{/calidad}">Calidad</a>
                 <form method="post" th:action="@{/logout}">
                     <button type="submit" class="boton barra-boton">Cerrar sesión</button>
                 </form>

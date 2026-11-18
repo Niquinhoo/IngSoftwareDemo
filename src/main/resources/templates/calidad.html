@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es-AR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: head('Calidad')}"></head>
+<body>
+    <header th:replace="~{fragmentos :: cabecera}"></header>
+    <main id="contenido" class="pagina">
+        <h1>Calidad del prototipo</h1>
+        <p class="texto-secundario">Resultados de GitHub Actions del <time datetime="2026-11-18">18 de noviembre de 2026</time>
+            · commit <code>6123e2a</code>.</p>
+
+        <section class="panel seccion" aria-labelledby="prueba-puntuacion">
+            <h2 id="prueba-puntuacion">Puntuación y ranking</h2>
+            <p><strong>20 de 20 escenarios correctos</strong>, la meta de
+                <a href="https://ingsoftap2026.atlassian.net/browse/SCRUM-72">SCRUM-72</a>.
+                El test parametrizado de JUnit compara los puntos y aciertos exactos esperados con los que devuelve el ranking.</p>
+            <p>Con un pronóstico exacto de 2–1, tres casos de la matriz comprobaron estos resultados:</p>
+            <dl class="fechas">
+                <div><dt>Clásica · caso 01</dt><dd>3 puntos</dd></div>
+                <div><dt>Doble final en partido común · caso 19</dt><dd>5 puntos</dd></div>
+                <div><dt>Doble final en una final · caso 17</dt><dd>10 puntos</dd></div>
+            </dl>
+            <div class="acciones">
+                <a class="boton" href="https://github.com/Niquinhoo/IngSoftwareDemo/blob/6123e2a/src/test/java/ar/edu/ingsoftware/prode/puntaje/PuntuacionTest.java">Ver archivo completo del test de puntuación</a>
+                <a class="boton" href="https://github.com/Niquinhoo/IngSoftwareDemo/blob/6123e2a/src/test/java/ar/edu/ingsoftware/prode/ProdeServiceTest.java#L79-L97">Ver test de cierre</a>
+            </div>
+        </section>
+
+        <section class="seccion" aria-labelledby="mediciones">
+            <h2 id="mediciones">Mediciones de la corrida</h2>
+            <p>El 82,1 % de cobertura de líneas se calculó al ejecutar la suite completa de 39 pruebas.
+                El informe de JaCoCo muestra el detalle por paquete y clase.</p>
+            <div class="acciones">
+                <a class="boton primario" th:href="@{/calidad/jacoco/index.html}">Abrir informe completo de JaCoCo</a>
+            </div>
+            <div class="tabla">
+                <table aria-labelledby="mediciones">
+                    <thead>
+                        <tr><th scope="col">Métrica</th><th scope="col">Resultado</th><th scope="col">Alcance</th></tr>
+                    </thead>
+                    <!-- shortcut: corte de CI del commit 6123e2a; actualizar desde sus informes al renovar la demo -->
+                    <tbody>
+                        <tr><th scope="row">Líneas cubiertas · JaCoCo</th><td><strong>82,1 %</strong> (555 de 676)</td><td>Proyecto completo</td></tr>
+                        <tr><th scope="row">Ramas cubiertas · JaCoCo</th><td><strong>63,3 %</strong> (188 de 297)</td><td>Proyecto completo</td></tr>
+                        <tr><th scope="row">Cobertura del paquete de puntaje · JaCoCo</th><td><strong>100 %</strong> (50 líneas y 25 ramas)</td><td>Paquete de puntaje, sin el laboratorio</td></tr>
+                        <tr><th scope="row">Casos aprobados · JUnit</th><td><strong>39 de 39</strong></td><td>Suite completa</td></tr>
+                        <tr><th scope="row">Bloques duplicados · CPD</th><td><strong>0</strong> detectados</td><td>Java, con umbral de 100 tokens</td></tr>
+                        <tr><th scope="row">Infracciones · PMD</th><td><strong>0</strong> reportadas</td><td>Reglas de calidad configuradas en el proyecto</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="seccion"><strong>Referencia Sonar way.</strong> Exige al menos 80 % de cobertura y hasta 3 % de
+                líneas duplicadas en código nuevo. En esta corrida, JaCoCo midió líneas y ramas a escala de proyecto, y
+                CPD contó bloques. Para evaluar ese Quality Gate haría falta medir el código nuevo con sus propias reglas.</p>
+            <div class="acciones">
+                <a class="boton" href="https://github.com/Niquinhoo/IngSoftwareDemo/actions/runs/44233471048">Corrida y artefactos</a>
+                <a class="boton" href="https://github.com/Niquinhoo/IngSoftwareDemo/releases/tag/informes-2026-11-18">Informes en PDF</a>
+                <a class="boton" href="https://docs.sonarsource.com/sonarqube-server/2025.3/quality-standards-administration/managing-quality-gates/introduction-to-quality-gates">Referencia Sonar way</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

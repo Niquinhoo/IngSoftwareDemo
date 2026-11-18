@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Puntuacion.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">IngSoftwareDemo</a> &gt; <a href="index.source.html" class="el_package">ar.edu.ingsoftware.prode.puntaje</a> &gt; <span class="el_source">Puntuacion.java</span></div><h1>Puntuacion.java</h1><pre class="source lang-java linenums">package ar.edu.ingsoftware.prode.puntaje;
+
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+public final class Puntuacion {
+    private Puntuacion() {}
+
+<span class="fc" id="L13">    public enum Tipo {</span>
+<span class="fc" id="L14">        CLASICA, ALTERNATIVA, FINAL_DOBLE</span>
+    }
+
+    public record Marcador(int local, int visitante) {
+<span class="fc" id="L18">        public Marcador {</span>
+<span class="fc bfc" id="L19" title="All 4 branches covered.">            if (local &lt; 0 || visitante &lt; 0) {</span>
+<span class="fc" id="L20">                throw new IllegalArgumentException(&quot;Los goles no pueden ser negativos.&quot;);</span>
+            }
+<span class="fc" id="L22">        }</span>
+
+        public int diferencia() {
+<span class="fc" id="L25">            return local - visitante;</span>
+        }
+    }
+
+    public record Entrada(String participante, Marcador pronostico, Marcador resultado, boolean finalPartido) {
+<span class="fc" id="L30">        public Entrada {</span>
+<span class="fc" id="L31">            Objects.requireNonNull(participante);</span>
+<span class="fc" id="L32">            Objects.requireNonNull(pronostico);</span>
+<span class="fc" id="L33">            Objects.requireNonNull(resultado);</span>
+<span class="fc" id="L34">        }</span>
+    }
+
+<span class="fc" id="L37">    public record Puesto(String participante, int puntos, int exactos) {}</span>
+
+    @FunctionalInterface
+    public interface ReglaPuntaje {
+        int puntos(Entrada entrada);
+    }
+
+<span class="fc" id="L44">    private static final ReglaPuntaje CLASICA = entrada -&gt; {</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        if (entrada.pronostico().equals(entrada.resultado())) {</span>
+<span class="fc" id="L46">            return 3;</span>
+        }
+<span class="fc" id="L48">        int pronostico = Integer.signum(entrada.pronostico().diferencia());</span>
+<span class="fc" id="L49">        int resultado = Integer.signum(entrada.resultado().diferencia());</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        return pronostico == resultado ? 1 : 0;</span>
+    };
+
+<span class="fc" id="L53">    private static final ReglaPuntaje ALTERNATIVA = entrada -&gt; {</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        if (entrada.pronostico().equals(entrada.resultado())) {</span>
+<span class="fc" id="L55">            return 5;</span>
+        }
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        return entrada.pronostico().diferencia() == entrada.resultado().diferencia() ? 2 : 0;</span>
+    };
+
+<span class="fc" id="L60">    private record DobleEnFinal(ReglaPuntaje base) implements ReglaPuntaje {</span>
+        @Override
+        public int puntos(Entrada entrada) {
+<span class="fc" id="L63">            int puntos = base.puntos(entrada);</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">            return entrada.finalPartido() ? 2 * puntos : puntos;</span>
+        }
+    }
+
+<span class="fc" id="L68">    private static final ReglaPuntaje FINAL_DOBLE = new DobleEnFinal(ALTERNATIVA);</span>
+
+    public static List&lt;Puesto&gt; ranking(Tipo tipo, Collection&lt;String&gt; participantes, List&lt;Entrada&gt; entradas) {
+<span class="fc bfc" id="L71" title="All 3 branches covered.">        ReglaPuntaje regla = switch (tipo) {</span>
+<span class="fc" id="L72">            case CLASICA -&gt; CLASICA;</span>
+<span class="fc" id="L73">            case ALTERNATIVA -&gt; ALTERNATIVA;</span>
+<span class="fc" id="L74">            case FINAL_DOBLE -&gt; FINAL_DOBLE;</span>
+        };
+<span class="fc" id="L76">        return ranking(regla, participantes, entradas);</span>
+    }
+
+    public static List&lt;Puesto&gt; ranking(ReglaPuntaje regla, Collection&lt;String&gt; participantes, List&lt;Entrada&gt; entradas) {
+<span class="fc" id="L80">        Objects.requireNonNull(regla);</span>
+<span class="fc" id="L81">        Map&lt;String, Puesto&gt; totales = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        for (String participante : participantes) {</span>
+<span class="fc" id="L83">            totales.put(Objects.requireNonNull(participante), new Puesto(participante, 0, 0));</span>
+<span class="fc" id="L84">        }</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        for (Entrada entrada : entradas) {</span>
+<span class="fc" id="L86">            Puesto anterior = totales.get(entrada.participante());</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">            if (anterior == null) {</span>
+<span class="fc" id="L88">                throw new IllegalArgumentException(&quot;Participante fuera del torneo: &quot; + entrada.participante());</span>
+            }
+<span class="fc" id="L90">            int puntos = Math.addExact(anterior.puntos(), regla.puntos(entrada));</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">            int exactos = anterior.exactos() + (entrada.pronostico().equals(entrada.resultado()) ? 1 : 0);</span>
+<span class="fc" id="L92">            totales.put(entrada.participante(), new Puesto(entrada.participante(), puntos, exactos));</span>
+<span class="fc" id="L93">        }</span>
+<span class="fc" id="L94">        return totales.values().stream()</span>
+<span class="fc" id="L95">                .sorted(Comparator.comparingInt(Puesto::puntos).reversed()</span>
+<span class="fc" id="L96">                        .thenComparing(Comparator.comparingInt(Puesto::exactos).reversed())</span>
+<span class="fc" id="L97">                        .thenComparing(Puesto::participante))</span>
+<span class="fc" id="L98">                .toList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.16.202610240946</span></div></body></html>

@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProdeService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">IngSoftwareDemo</a> &gt; <a href="index.source.html" class="el_package">ar.edu.ingsoftware.prode</a> &gt; <span class="el_source">ProdeService.java</span></div><h1>ProdeService.java</h1><pre class="source lang-java linenums">package ar.edu.ingsoftware.prode;
+
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion;
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion.Marcador;
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion.Puesto;
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion.Tipo;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class ProdeService {
+<span class="fc" id="L22">    public static final ZoneId ZONA = ZoneId.of(&quot;America/Argentina/Buenos_Aires&quot;);</span>
+
+<span class="fc" id="L24">    public enum EstadoTorneo { BORRADOR, PROXIMO, ACTIVO, FINALIZADO }</span>
+<span class="fc" id="L25">    public enum EstadoPartido { PROXIMO, EN_JUEGO, SUSPENDIDO, FINALIZADO }</span>
+
+<span class="fc" id="L27">    public record Torneo(long id, String nombre, String descripcion, LocalDate inicio, LocalDate fin,</span>
+                         EstadoTorneo estado, Tipo regla) {}
+<span class="fc" id="L29">    public record Equipo(long id, long torneoId, String nombre) {}</span>
+<span class="fc" id="L30">    public record Partido(long id, long torneoId, long localId, long visitanteId, Instant inicio, Instant cierre,</span>
+                          EstadoPartido estado, boolean finalPartido, Marcador resultado) {}
+<span class="fc" id="L32">    public record Prediccion(Marcador marcador, Instant creada, Instant actualizada) {}</span>
+
+    private final ProdeDatos datos;
+    private final Clock reloj;
+    private final ApplicationEventPublisher eventos;
+
+<span class="fc" id="L38">    ProdeService(ProdeDatos datos, Clock reloj, ApplicationEventPublisher eventos) {</span>
+<span class="fc" id="L39">        this.datos = datos;</span>
+<span class="fc" id="L40">        this.reloj = reloj;</span>
+<span class="fc" id="L41">        this.eventos = eventos;</span>
+<span class="fc" id="L42">    }</span>
+
+    public List&lt;Torneo&gt; torneos() {
+<span class="fc" id="L45">        return datos.torneos();</span>
+    }
+
+    public Torneo torneo(long id) {
+<span class="pc" id="L49">        return datos.torneo(id).orElseThrow(() -&gt; noExiste(&quot;El torneo&quot;));</span>
+    }
+
+    public List&lt;Equipo&gt; equipos(long torneo) {
+<span class="fc" id="L53">        torneo(torneo);</span>
+<span class="fc" id="L54">        return datos.equipos(torneo);</span>
+    }
+
+    public List&lt;Partido&gt; partidos(long torneo) {
+<span class="fc" id="L58">        torneo(torneo);</span>
+<span class="fc" id="L59">        return datos.partidos(torneo);</span>
+    }
+
+    public Partido partido(long torneo, long partido) {
+<span class="pc" id="L63">        return datos.partido(torneo, partido).orElseThrow(() -&gt; noExiste(&quot;El partido en este torneo&quot;));</span>
+    }
+
+    public boolean inscrito(String actor, long torneo) {
+<span class="fc" id="L67">        torneo(torneo);</span>
+<span class="fc" id="L68">        return datos.inscrito(torneo, actor);</span>
+    }
+
+    public Optional&lt;Prediccion&gt; prediccion(String actor, long torneo, long partido) {
+<span class="fc" id="L72">        partido(torneo, partido);</span>
+<span class="fc" id="L73">        return datos.prediccion(partido, actor);</span>
+    }
+
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public List&lt;Puesto&gt; ranking(long torneo) {
+<span class="fc" id="L78">        var regla = torneo(torneo).regla();</span>
+<span class="fc" id="L79">        return Puntuacion.ranking(regla, datos.participantes(torneo), datos.entradasRanking(torneo));</span>
+    }
+
+    @Transactional
+    public long crearTorneo(String actor, String nombre, String descripcion, LocalDate inicio,
+                            LocalDate fin, EstadoTorneo estado, Tipo regla) {
+<span class="fc" id="L85">        exigirRol(actor, &quot;ADMIN&quot;);</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        if (estado == EstadoTorneo.FINALIZADO) {</span>
+<span class="nc" id="L87">            throw new ProdeException(HttpStatus.BAD_REQUEST, &quot;Un torneo nuevo no puede estar finalizado&quot;);</span>
+        }
+<span class="fc" id="L89">        return datos.crearTorneo(datosTorneo(0, nombre, descripcion, inicio, fin, estado, regla));</span>
+    }
+
+    @Transactional
+    public void actualizarTorneo(String actor, long id, String nombre, String descripcion, LocalDate inicio,
+                                  LocalDate fin, EstadoTorneo estado, Tipo regla) {
+<span class="fc" id="L95">        exigirRol(actor, &quot;ADMIN&quot;);</span>
+<span class="fc" id="L96">        var actual = bloquearTorneo(id);</span>
+<span class="fc" id="L97">        var actualizado = datosTorneo(id, nombre, descripcion, inicio, fin, estado, regla);</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">        if (!transicionValida(actual.estado(), estado)) {</span>
+<span class="nc" id="L99">            throw conflicto(&quot;Ese cambio de estado no está permitido&quot;);</span>
+        }
+<span class="fc" id="L101">        var partidos = datos.partidos(id);</span>
+<span class="pc bpc" id="L102" title="3 of 4 branches missed.">        if (partidos.stream().anyMatch(partido -&gt; !fechaDentro(actualizado, partido.inicio()))) {</span>
+<span class="nc" id="L103">            throw conflicto(&quot;Las fechas nuevas deben incluir todos los partidos existentes&quot;);</span>
+        }
+<span class="pc bpc" id="L105" title="2 of 4 branches missed.">        if (estado == EstadoTorneo.FINALIZADO &amp;&amp; partidos.stream().anyMatch(</span>
+<span class="nc bnc" id="L106" title="All 4 branches missed.">                partido -&gt; partido.estado() == EstadoPartido.PROXIMO || partido.estado() == EstadoPartido.EN_JUEGO)) {</span>
+<span class="nc" id="L107">            throw conflicto(&quot;Finalizá o suspendé los partidos pendientes antes de cerrar el torneo&quot;);</span>
+        }
+<span class="fc" id="L109">        datos.actualizarTorneo(actualizado);</span>
+<span class="fc" id="L110">    }</span>
+
+    @Transactional
+    public long crearEquipo(String actor, long torneo, String nombre) {
+<span class="fc" id="L114">        exigirRol(actor, &quot;ADMIN&quot;);</span>
+<span class="fc" id="L115">        exigirEditable(bloquearTorneo(torneo));</span>
+        try {
+<span class="fc" id="L117">            return datos.crearEquipo(torneo, nombreValido(nombre));</span>
+<span class="nc" id="L118">        } catch (DuplicateKeyException duplicado) {</span>
+<span class="nc" id="L119">            throw conflicto(&quot;Ya existe un equipo con ese nombre en el torneo&quot;);</span>
+        }
+    }
+
+    @Transactional
+    public void actualizarEquipo(String actor, long torneo, long equipo, String nombre) {
+<span class="nc" id="L125">        exigirRol(actor, &quot;ADMIN&quot;);</span>
+<span class="nc" id="L126">        exigirEditable(bloquearTorneo(torneo));</span>
+<span class="nc" id="L127">        exigirEquipo(torneo, equipo);</span>
+        try {
+<span class="nc" id="L129">            datos.actualizarEquipo(torneo, equipo, nombreValido(nombre));</span>
+<span class="nc" id="L130">        } catch (DuplicateKeyException duplicado) {</span>
+<span class="nc" id="L131">            throw conflicto(&quot;Ya existe un equipo con ese nombre en el torneo&quot;);</span>
+<span class="nc" id="L132">        }</span>
+<span class="nc" id="L133">    }</span>
+
+    @Transactional
+    public long crearPartido(String actor, long torneo, long local, long visitante, Instant inicio, boolean esFinal) {
+<span class="fc" id="L137">        exigirRol(actor, &quot;ADMIN&quot;);</span>
+<span class="fc" id="L138">        var copa = bloquearTorneo(torneo);</span>
+<span class="fc" id="L139">        exigirEditable(copa);</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        if (local == visitante) {</span>
+<span class="fc" id="L141">            throw new ProdeException(HttpStatus.BAD_REQUEST, &quot;El local y el visitante deben ser equipos distintos&quot;);</span>
+        }
+<span class="fc" id="L143">        exigirEquipo(torneo, local);</span>
+<span class="fc" id="L144">        exigirEquipo(torneo, visitante);</span>
+<span class="fc" id="L145">        validarHorario(copa, inicio);</span>
+<span class="fc" id="L146">        return datos.crearPartido(torneo, local, visitante, inicio, esFinal);</span>
+    }
+
+    @Transactional
+    public void reprogramarPartido(String actor, long torneo, long partido, Instant nuevoInicio) {
+<span class="fc" id="L151">        exigirRol(actor, &quot;ADMIN&quot;);</span>
+<span class="fc" id="L152">        var copa = bloquearTorneo(torneo);</span>
+<span class="fc" id="L153">        exigirEditable(copa);</span>
+<span class="fc" id="L154">        var actual = partido(torneo, partido);</span>
+<span class="pc bpc" id="L155" title="1 of 4 branches missed.">        if (actual.estado() != EstadoPartido.PROXIMO &amp;&amp; actual.estado() != EstadoPartido.SUSPENDIDO) {</span>
+<span class="nc" id="L156">            throw conflicto(&quot;Solo se pueden reprogramar partidos próximos o suspendidos&quot;);</span>
+        }
+<span class="fc" id="L158">        validarHorario(copa, nuevoInicio);</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">        Instant cierre = actual.cierre().isBefore(nuevoInicio) ? actual.cierre() : nuevoInicio;</span>
+<span class="fc" id="L160">        datos.reprogramar(actual, nuevoInicio, cierre);</span>
+<span class="fc" id="L161">    }</span>
+
+    @Transactional
+    public void iniciarPartido(String actor, long torneo, long partido) {
+<span class="fc" id="L165">        exigirRol(actor, &quot;ADMIN&quot;);</span>
+<span class="fc" id="L166">        exigirHabilitado(bloquearTorneo(torneo));</span>
+<span class="fc" id="L167">        var actual = partido(torneo, partido);</span>
+<span class="pc bpc" id="L168" title="2 of 4 branches missed.">        if (actual.estado() != EstadoPartido.PROXIMO || reloj.instant().isBefore(actual.inicio())) {</span>
+<span class="nc" id="L169">            throw conflicto(&quot;Solo se puede iniciar un partido próximo al alcanzar su horario programado&quot;);</span>
+        }
+<span class="fc" id="L171">        datos.estadoPartido(partido, EstadoPartido.EN_JUEGO);</span>
+<span class="fc" id="L172">    }</span>
+
+    @Transactional
+    public void suspenderPartido(String actor, long torneo, long partido) {
+<span class="fc" id="L176">        exigirRol(actor, &quot;ADMIN&quot;);</span>
+<span class="fc" id="L177">        exigirEditable(bloquearTorneo(torneo));</span>
+<span class="fc" id="L178">        var actual = partido(torneo, partido);</span>
+<span class="pc bpc" id="L179" title="3 of 4 branches missed.">        if (actual.estado() != EstadoPartido.PROXIMO &amp;&amp; actual.estado() != EstadoPartido.EN_JUEGO) {</span>
+<span class="nc" id="L180">            throw conflicto(&quot;Solo se pueden suspender partidos próximos o en juego&quot;);</span>
+        }
+<span class="fc" id="L182">        datos.estadoPartido(partido, EstadoPartido.SUSPENDIDO);</span>
+<span class="fc" id="L183">    }</span>
+
+    @Transactional
+    public void publicarResultado(String actor, long torneo, long partido, Marcador marcador) {
+<span class="fc" id="L187">        exigirRol(actor, &quot;ADMIN&quot;);</span>
+<span class="fc" id="L188">        bloquearTorneo(torneo);</span>
+<span class="fc" id="L189">        var actual = partido(torneo, partido);</span>
+<span class="fc" id="L190">        validarMarcador(marcador);</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">        boolean correccion = actual.estado() == EstadoPartido.FINALIZADO;</span>
+<span class="fc bfc" id="L192" title="All 4 branches covered.">        if (!correccion &amp;&amp; actual.estado() != EstadoPartido.EN_JUEGO) {</span>
+<span class="fc" id="L193">            throw conflicto(&quot;El partido debe estar en juego para publicar el resultado&quot;);</span>
+        }
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        if (!marcador.equals(actual.resultado())) {</span>
+<span class="fc" id="L196">            new PublicarResultado(torneo, partido, marcador, correccion).ejecutar(datos, eventos);</span>
+        }
+<span class="fc" id="L198">    }</span>
+
+    @Transactional
+    public void inscribir(String actor, long torneo) {
+<span class="fc" id="L202">        exigirRol(actor, &quot;USER&quot;);</span>
+<span class="fc" id="L203">        var copa = bloquearTorneo(torneo);</span>
+<span class="fc" id="L204">        exigirHabilitado(copa);</span>
+<span class="pc bpc" id="L205" title="1 of 2 branches missed.">        if (LocalDate.ofInstant(reloj.instant(), ZONA).isAfter(copa.fin())) {</span>
+<span class="nc" id="L206">            throw conflicto(&quot;Ya pasó la fecha de finalización del torneo&quot;);</span>
+        }
+<span class="fc bfc" id="L208" title="All 2 branches covered.">        if (!datos.inscrito(torneo, actor)) {</span>
+<span class="fc" id="L209">            datos.inscribir(torneo, actor);</span>
+        }
+<span class="fc" id="L211">    }</span>
+
+    @Transactional
+    public void guardarPrediccion(String actor, long torneo, long partido, Marcador marcador, boolean editar) {
+<span class="fc" id="L215">        exigirRol(actor, &quot;USER&quot;);</span>
+<span class="fc" id="L216">        var copa = bloquearTorneo(torneo);</span>
+<span class="fc" id="L217">        var encuentro = partido(torneo, partido);</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">        if (!datos.inscrito(torneo, actor)) {</span>
+<span class="fc" id="L219">            throw new ProdeException(HttpStatus.FORBIDDEN, &quot;Inscribite en el torneo para cargar pronósticos&quot;);</span>
+        }
+<span class="fc" id="L221">        exigirHabilitado(copa);</span>
+<span class="fc" id="L222">        validarMarcador(marcador);</span>
+<span class="fc" id="L223">        var anterior = datos.prediccion(partido, actor);</span>
+<span class="fc" id="L224">        var ahora = reloj.instant();</span>
+<span class="fc bfc" id="L225" title="All 4 branches covered.">        if (encuentro.estado() != EstadoPartido.PROXIMO || !ahora.isBefore(encuentro.cierre())) {</span>
+<span class="fc" id="L226">            throw conflicto(&quot;Los pronósticos de este partido están cerrados&quot;);</span>
+        }
+<span class="fc bfc" id="L228" title="All 4 branches covered.">        if (!editar &amp;&amp; anterior.isPresent()) {</span>
+<span class="fc" id="L229">            throw conflicto(&quot;Ya tenés un pronóstico. Usá la opción Editar&quot;);</span>
+        }
+<span class="fc bfc" id="L231" title="All 2 branches covered.">        if (editar) {</span>
+<span class="pc" id="L232">            var previa = anterior.orElseThrow(() -&gt; conflicto(&quot;Primero cargá un pronóstico&quot;));</span>
+<span class="pc bpc" id="L233" title="1 of 2 branches missed.">            Instant actualizada = ahora.isBefore(previa.actualizada()) ? previa.actualizada() : ahora;</span>
+<span class="fc" id="L234">            datos.editarPrediccion(partido, actor, marcador, actualizada);</span>
+<span class="fc" id="L235">        } else {</span>
+<span class="fc" id="L236">            datos.altaPrediccion(torneo, partido, actor, marcador, ahora);</span>
+        }
+<span class="fc" id="L238">    }</span>
+
+    // Los cambios de calendario y los pronósticos toman el mismo bloqueo hasta el commit.
+    private Torneo bloquearTorneo(long id) {
+<span class="pc" id="L242">        return datos.bloquearTorneo(id).orElseThrow(() -&gt; noExiste(&quot;El torneo&quot;));</span>
+    }
+
+    private void exigirRol(String actor, String esperado) {
+<span class="pc bpc" id="L246" title="1 of 4 branches missed.">        if (actor == null || datos.rol(actor).filter(esperado::equals).isEmpty()) {</span>
+<span class="fc" id="L247">            throw new ProdeException(HttpStatus.FORBIDDEN, &quot;No tenés permiso para realizar esa operación&quot;);</span>
+        }
+<span class="fc" id="L249">    }</span>
+
+    private void exigirEquipo(long torneo, long equipo) {
+<span class="fc bfc" id="L252" title="All 2 branches covered.">        if (!datos.existeEquipo(torneo, equipo)) {</span>
+<span class="fc" id="L253">            throw noExiste(&quot;El equipo en este torneo&quot;);</span>
+        }
+<span class="fc" id="L255">    }</span>
+
+    private void validarHorario(Torneo torneo, Instant inicio) {
+<span class="pc bpc" id="L258" title="3 of 6 branches missed.">        if (inicio == null || !inicio.isAfter(reloj.instant()) || !fechaDentro(torneo, inicio)) {</span>
+<span class="nc" id="L259">            throw new ProdeException(HttpStatus.BAD_REQUEST,</span>
+                    &quot;Programá el partido a futuro, dentro de las fechas del torneo&quot;);
+        }
+<span class="fc" id="L262">    }</span>
+
+    private static boolean fechaDentro(Torneo torneo, Instant inicio) {
+<span class="fc" id="L265">        var fecha = LocalDate.ofInstant(inicio, ZONA);</span>
+<span class="pc bpc" id="L266" title="2 of 4 branches missed.">        return !fecha.isBefore(torneo.inicio()) &amp;&amp; !fecha.isAfter(torneo.fin());</span>
+    }
+
+    private static Torneo datosTorneo(long id, String nombre, String descripcion, LocalDate inicio,
+                                      LocalDate fin, EstadoTorneo estado, Tipo regla) {
+<span class="pc bpc" id="L271" title="1 of 2 branches missed.">        String texto = descripcion == null ? &quot;&quot; : descripcion.strip();</span>
+<span class="pc bpc" id="L272" title="5 of 10 branches missed.">        if (inicio == null || fin == null || fin.isBefore(inicio) || estado == null || regla == null) {</span>
+<span class="nc" id="L273">            throw new ProdeException(HttpStatus.BAD_REQUEST, &quot;Revisá las fechas, el estado y la regla de puntuación&quot;);</span>
+        }
+<span class="pc bpc" id="L275" title="1 of 2 branches missed.">        if (texto.length() &gt; 500) {</span>
+<span class="nc" id="L276">            throw new ProdeException(HttpStatus.BAD_REQUEST, &quot;La descripción admite hasta 500 caracteres&quot;);</span>
+        }
+<span class="fc" id="L278">        return new Torneo(id, nombreValido(nombre), texto, inicio, fin, estado, regla);</span>
+    }
+
+    private static String nombreValido(String nombre) {
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">        String limpio = nombre == null ? &quot;&quot; : nombre.strip();</span>
+<span class="pc bpc" id="L283" title="2 of 4 branches missed.">        if (limpio.isEmpty() || limpio.length() &gt; 100) {</span>
+<span class="nc" id="L284">            throw new ProdeException(HttpStatus.BAD_REQUEST, &quot;Ingresá un nombre de 1 a 100 caracteres&quot;);</span>
+        }
+<span class="fc" id="L286">        return limpio;</span>
+    }
+
+    private static boolean transicionValida(EstadoTorneo anterior, EstadoTorneo siguiente) {
+<span class="pc bpc" id="L290" title="4 of 6 branches missed.">        return anterior == siguiente || switch (anterior) {</span>
+<span class="nc bnc" id="L291" title="All 4 branches missed.">            case BORRADOR -&gt; siguiente == EstadoTorneo.PROXIMO || siguiente == EstadoTorneo.ACTIVO;</span>
+<span class="nc bnc" id="L292" title="All 2 branches missed.">            case PROXIMO -&gt; siguiente == EstadoTorneo.ACTIVO;</span>
+<span class="pc bpc" id="L293" title="1 of 2 branches missed.">            case ACTIVO -&gt; siguiente == EstadoTorneo.FINALIZADO;</span>
+<span class="pc" id="L294">            case FINALIZADO -&gt; false;</span>
+        };
+    }
+
+    private static void exigirEditable(Torneo torneo) {
+<span class="pc bpc" id="L299" title="1 of 2 branches missed.">        if (torneo.estado() == EstadoTorneo.FINALIZADO) {</span>
+<span class="nc" id="L300">            throw conflicto(&quot;El torneo ya finalizó&quot;);</span>
+        }
+<span class="fc" id="L302">    }</span>
+
+    private static void exigirHabilitado(Torneo torneo) {
+<span class="pc bpc" id="L305" title="1 of 4 branches missed.">        if (torneo.estado() != EstadoTorneo.PROXIMO &amp;&amp; torneo.estado() != EstadoTorneo.ACTIVO) {</span>
+<span class="fc" id="L306">            throw conflicto(&quot;El torneo debe estar próximo o activo&quot;);</span>
+        }
+<span class="fc" id="L308">    }</span>
+
+    private static void validarMarcador(Marcador marcador) {
+<span class="pc bpc" id="L311" title="3 of 6 branches missed.">        if (marcador == null || marcador.local() &gt; 99 || marcador.visitante() &gt; 99) {</span>
+<span class="nc" id="L312">            throw new ProdeException(HttpStatus.BAD_REQUEST, &quot;Ingresá goles enteros entre 0 y 99&quot;);</span>
+        }
+<span class="fc" id="L314">    }</span>
+
+    private static ProdeException noExiste(String entidad) {
+<span class="fc" id="L317">        return new ProdeException(HttpStatus.NOT_FOUND, entidad + &quot; no existe&quot;);</span>
+    }
+
+    private static ProdeException conflicto(String mensaje) {
+<span class="fc" id="L321">        return new ProdeException(HttpStatus.CONFLICT, mensaje);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.16.202610240946</span></div></body></html>

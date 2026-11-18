@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">IngSoftwareDemo</a> &gt; <a href="index.source.html" class="el_package">ar.edu.ingsoftware.prode.web</a> &gt; <span class="el_source">AdminController.java</span></div><h1>AdminController.java</h1><pre class="source lang-java linenums">package ar.edu.ingsoftware.prode.web;
+
+import ar.edu.ingsoftware.prode.ProdeService;
+import ar.edu.ingsoftware.prode.ProdeService.EstadoPartido;
+import ar.edu.ingsoftware.prode.ProdeService.EstadoTorneo;
+import ar.edu.ingsoftware.prode.ProdeService.Partido;
+import ar.edu.ingsoftware.prode.ProdeService.Torneo;
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion.Tipo;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+@Controller
+@RequestMapping(&quot;/admin/torneos&quot;)
+class AdminController {
+    private final ProdeService prode;
+    private final Clock reloj;
+
+<span class="fc" id="L30">    AdminController(ProdeService prode, Clock reloj) {</span>
+<span class="fc" id="L31">        this.prode = prode;</span>
+<span class="fc" id="L32">        this.reloj = reloj;</span>
+<span class="fc" id="L33">    }</span>
+
+    @GetMapping(&quot;/nuevo&quot;)
+    String nuevoTorneo(Model modelo) {
+<span class="fc" id="L37">        return formularioTorneo(modelo, List.of(EstadoTorneo.BORRADOR, EstadoTorneo.PROXIMO, EstadoTorneo.ACTIVO));</span>
+    }
+
+    @GetMapping(&quot;/{torneo}/editar&quot;)
+    String editarTorneo(@PathVariable long torneo, Model modelo) {
+<span class="fc" id="L42">        Torneo actual = prode.torneo(torneo);</span>
+<span class="fc" id="L43">        modelo.addAttribute(&quot;torneo&quot;, actual);</span>
+<span class="pc bpc" id="L44" title="3 of 4 branches missed.">        return formularioTorneo(modelo, switch (actual.estado()) {</span>
+<span class="nc" id="L45">            case BORRADOR -&gt; List.of(EstadoTorneo.BORRADOR, EstadoTorneo.PROXIMO, EstadoTorneo.ACTIVO);</span>
+<span class="nc" id="L46">            case PROXIMO -&gt; List.of(EstadoTorneo.PROXIMO, EstadoTorneo.ACTIVO);</span>
+<span class="fc" id="L47">            case ACTIVO -&gt; List.of(EstadoTorneo.ACTIVO, EstadoTorneo.FINALIZADO);</span>
+<span class="nc" id="L48">            case FINALIZADO -&gt; List.of(EstadoTorneo.FINALIZADO);</span>
+        });
+    }
+
+    @PostMapping
+    String crearTorneo(@RequestParam String nombre, @RequestParam(defaultValue = &quot;&quot;) String descripcion,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin,
+            @RequestParam EstadoTorneo estado, @RequestParam Tipo regla, Authentication autenticacion,
+            RedirectAttributes redireccion) {
+<span class="fc" id="L58">        long torneo = prode.crearTorneo(autenticacion.getName(), nombre, descripcion, inicio, fin, estado, regla);</span>
+<span class="fc" id="L59">        redireccion.addFlashAttribute(&quot;aviso&quot;, &quot;Torneo creado.&quot;);</span>
+<span class="fc" id="L60">        return gestionar(torneo);</span>
+    }
+
+    @PostMapping(&quot;/{torneo}&quot;)
+    String actualizarTorneo(@PathVariable long torneo, @RequestParam String nombre,
+            @RequestParam(defaultValue = &quot;&quot;) String descripcion,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin,
+            @RequestParam EstadoTorneo estado, @RequestParam Tipo regla, Authentication autenticacion,
+            RedirectAttributes redireccion) {
+<span class="nc" id="L70">        prode.actualizarTorneo(autenticacion.getName(), torneo, nombre, descripcion, inicio, fin, estado, regla);</span>
+<span class="nc" id="L71">        redireccion.addFlashAttribute(&quot;aviso&quot;, &quot;Torneo actualizado.&quot;);</span>
+<span class="nc" id="L72">        return gestionar(torneo);</span>
+    }
+
+    @GetMapping(&quot;/{torneo}&quot;)
+    String torneo(@PathVariable long torneo, Model modelo) {
+<span class="fc" id="L77">        Torneo actual = prode.torneo(torneo);</span>
+<span class="fc" id="L78">        var equipos = prode.equipos(torneo);</span>
+<span class="fc" id="L79">        modelo.addAttribute(&quot;torneo&quot;, actual);</span>
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">        modelo.addAttribute(&quot;editable&quot;, actual.estado() != EstadoTorneo.FINALIZADO);</span>
+<span class="fc" id="L81">        modelo.addAttribute(&quot;equipos&quot;, equipos);</span>
+<span class="fc" id="L82">        modelo.addAttribute(&quot;nombres&quot;, VistasProde.nombres(equipos));</span>
+<span class="fc" id="L83">        modelo.addAttribute(&quot;partidos&quot;, prode.partidos(torneo));</span>
+<span class="fc" id="L84">        return &quot;admin-torneo&quot;;</span>
+    }
+
+    @PostMapping(&quot;/{torneo}/equipos&quot;)
+    String crearEquipo(@PathVariable long torneo, @RequestParam String nombre, Authentication autenticacion,
+            RedirectAttributes redireccion) {
+<span class="fc" id="L90">        prode.crearEquipo(autenticacion.getName(), torneo, nombre);</span>
+<span class="fc" id="L91">        redireccion.addFlashAttribute(&quot;aviso&quot;, &quot;Equipo agregado.&quot;);</span>
+<span class="fc" id="L92">        return gestionar(torneo) + &quot;#equipos&quot;;</span>
+    }
+
+    @PostMapping(&quot;/{torneo}/equipos/{equipo}&quot;)
+    String actualizarEquipo(@PathVariable long torneo, @PathVariable long equipo,
+            @RequestParam String nombre, Authentication autenticacion, RedirectAttributes redireccion) {
+<span class="nc" id="L98">        prode.actualizarEquipo(autenticacion.getName(), torneo, equipo, nombre);</span>
+<span class="nc" id="L99">        redireccion.addFlashAttribute(&quot;aviso&quot;, &quot;Equipo actualizado.&quot;);</span>
+<span class="nc" id="L100">        return gestionar(torneo) + &quot;#equipos&quot;;</span>
+    }
+
+    @PostMapping(&quot;/{torneo}/partidos&quot;)
+    String crearPartido(@PathVariable long torneo, @RequestParam long local, @RequestParam long visitante,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
+            @RequestParam(defaultValue = &quot;false&quot;) boolean esFinal, Authentication autenticacion,
+            RedirectAttributes redireccion) {
+<span class="fc" id="L108">        long partido = prode.crearPartido(autenticacion.getName(), torneo, local, visitante,</span>
+<span class="fc" id="L109">                inicio.atZone(ProdeService.ZONA).toInstant(), esFinal);</span>
+<span class="fc" id="L110">        redireccion.addFlashAttribute(&quot;aviso&quot;, &quot;Partido programado.&quot;);</span>
+<span class="fc" id="L111">        return gestionar(torneo, partido);</span>
+    }
+
+    @GetMapping(&quot;/{torneo}/partidos/{partido}&quot;)
+    String partido(@PathVariable long torneo, @PathVariable long partido, Model modelo) {
+<span class="fc" id="L116">        Torneo copa = prode.torneo(torneo);</span>
+<span class="fc" id="L117">        Partido detalle = prode.partido(torneo, partido);</span>
+<span class="fc" id="L118">        EstadoPartido estado = detalle.estado();</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">        boolean editable = copa.estado() != EstadoTorneo.FINALIZADO;</span>
+<span class="pc bpc" id="L120" title="2 of 4 branches missed.">        boolean habilitado = copa.estado() == EstadoTorneo.PROXIMO || copa.estado() == EstadoTorneo.ACTIVO;</span>
+<span class="pc bpc" id="L121" title="1 of 4 branches missed.">        boolean porComenzar = habilitado &amp;&amp; estado == EstadoPartido.PROXIMO;</span>
+<span class="fc" id="L122">        modelo.addAttribute(&quot;torneo&quot;, copa);</span>
+<span class="fc" id="L123">        modelo.addAttribute(&quot;partido&quot;, detalle);</span>
+<span class="fc" id="L124">        modelo.addAttribute(&quot;nombres&quot;, VistasProde.nombres(prode.equipos(torneo)));</span>
+<span class="fc" id="L125">        modelo.addAttribute(&quot;porComenzar&quot;, porComenzar);</span>
+<span class="pc bpc" id="L126" title="1 of 4 branches missed.">        modelo.addAttribute(&quot;puedeIniciar&quot;, porComenzar &amp;&amp; !reloj.instant().isBefore(detalle.inicio()));</span>
+<span class="pc bpc" id="L127" title="1 of 6 branches missed.">        modelo.addAttribute(&quot;puedeSuspender&quot;, editable &amp;&amp; (estado == EstadoPartido.PROXIMO || estado == EstadoPartido.EN_JUEGO));</span>
+<span class="pc bpc" id="L128" title="2 of 6 branches missed.">        modelo.addAttribute(&quot;puedeReprogramar&quot;, editable &amp;&amp; (estado == EstadoPartido.PROXIMO || estado == EstadoPartido.SUSPENDIDO));</span>
+<span class="fc bfc" id="L129" title="All 4 branches covered.">        modelo.addAttribute(&quot;puedePublicar&quot;, estado == EstadoPartido.EN_JUEGO || estado == EstadoPartido.FINALIZADO);</span>
+<span class="fc" id="L130">        return &quot;admin-partido&quot;;</span>
+    }
+
+    @PostMapping(&quot;/{torneo}/partidos/{partido}/reprogramar&quot;)
+    String reprogramar(@PathVariable long torneo, @PathVariable long partido,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
+            Authentication autenticacion, RedirectAttributes redireccion) {
+<span class="nc" id="L137">        prode.reprogramarPartido(autenticacion.getName(), torneo, partido, inicio.atZone(ProdeService.ZONA).toInstant());</span>
+<span class="nc" id="L138">        redireccion.addFlashAttribute(&quot;aviso&quot;, &quot;Partido reprogramado.&quot;);</span>
+<span class="nc" id="L139">        return gestionar(torneo, partido);</span>
+    }
+
+    @PostMapping(&quot;/{torneo}/partidos/{partido}/iniciar&quot;)
+    String iniciar(@PathVariable long torneo, @PathVariable long partido, Authentication autenticacion,
+            RedirectAttributes redireccion) {
+<span class="fc" id="L145">        prode.iniciarPartido(autenticacion.getName(), torneo, partido);</span>
+<span class="fc" id="L146">        redireccion.addFlashAttribute(&quot;aviso&quot;, &quot;Partido iniciado.&quot;);</span>
+<span class="fc" id="L147">        return gestionar(torneo, partido);</span>
+    }
+
+    @PostMapping(&quot;/{torneo}/partidos/{partido}/suspender&quot;)
+    String suspender(@PathVariable long torneo, @PathVariable long partido, Authentication autenticacion,
+            RedirectAttributes redireccion) {
+<span class="nc" id="L153">        prode.suspenderPartido(autenticacion.getName(), torneo, partido);</span>
+<span class="nc" id="L154">        redireccion.addFlashAttribute(&quot;aviso&quot;, &quot;Partido suspendido.&quot;);</span>
+<span class="nc" id="L155">        return gestionar(torneo, partido);</span>
+    }
+
+    @PostMapping(&quot;/{torneo}/partidos/{partido}/resultado&quot;)
+    String resultado(@PathVariable long torneo, @PathVariable long partido, @RequestParam int golesLocal,
+            @RequestParam int golesVisitante, Authentication autenticacion, RedirectAttributes redireccion) {
+<span class="fc" id="L161">        prode.publicarResultado(autenticacion.getName(), torneo, partido,</span>
+<span class="fc" id="L162">                TorneosController.marcador(golesLocal, golesVisitante));</span>
+<span class="fc" id="L163">        redireccion.addFlashAttribute(&quot;aviso&quot;, &quot;Resultado actualizado. Ya se refleja en la clasificación.&quot;);</span>
+<span class="fc" id="L164">        return gestionar(torneo, partido);</span>
+    }
+
+    private static String formularioTorneo(Model modelo, List&lt;EstadoTorneo&gt; estados) {
+<span class="fc" id="L168">        modelo.addAttribute(&quot;estados&quot;, estados);</span>
+<span class="fc" id="L169">        modelo.addAttribute(&quot;reglas&quot;, Tipo.values());</span>
+<span class="fc" id="L170">        return &quot;admin-torneo-form&quot;;</span>
+    }
+
+    private static String gestionar(long torneo) {
+<span class="fc" id="L174">        return &quot;redirect:/admin/torneos/&quot; + torneo;</span>
+    }
+
+    private static String gestionar(long torneo, long partido) {
+<span class="fc" id="L178">        return gestionar(torneo) + &quot;/partidos/&quot; + partido;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.16.202610240946</span></div></body></html>

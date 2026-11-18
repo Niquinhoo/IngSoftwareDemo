@@ -52,6 +52,8 @@ java -cp target/classes ar.edu.ingsoftware.prode.puntaje.laboratorio.Laboratorio
 
 ## Verificación y calidad
 
+Con el perfil `demo` e iniciando sesión, abrí **Torneos → Calidad → Abrir informe completo de JaCoCo**. El informe incluido corresponde a la [corrida del 18/11/2026](https://github.com/Niquinhoo/IngSoftwareDemo/actions/runs/44233471048) sobre el commit `6123e2a`. Desde un clon también podés abrir [el índice HTML](src/main/resources/informes/jacoco/index.html) localmente con el navegador. Para una medición nueva, ejecutá `mvn -B verify` y abrí el informe en `target/site/jacoco/index.html`.
+
 | Control | Cómo ejecutarlo | Resultado |
 | --- | --- | --- |
 | Integridad con Maven Enforcer | `mvn -B validate` | Versión de Java y convergencia de dependencias verificadas |

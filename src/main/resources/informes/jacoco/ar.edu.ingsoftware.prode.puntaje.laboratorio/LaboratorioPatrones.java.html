@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LaboratorioPatrones.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">IngSoftwareDemo</a> &gt; <a href="index.source.html" class="el_package">ar.edu.ingsoftware.prode.puntaje.laboratorio</a> &gt; <span class="el_source">LaboratorioPatrones.java</span></div><h1>LaboratorioPatrones.java</h1><pre class="source lang-java linenums">package ar.edu.ingsoftware.prode.puntaje.laboratorio;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
+
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion;
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion.Entrada;
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion.Marcador;
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion.Puesto;
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion.Tipo;
+
+public final class LaboratorioPatrones {
+    private LaboratorioPatrones() {}
+
+    // Singleton: el enum conserva una única configuración inmutable para el laboratorio.
+<span class="nc" id="L19">    private enum Configuracion {</span>
+<span class="nc" id="L20">        INSTANCIA;</span>
+
+<span class="nc" id="L22">        private final Tipo regla = Tipo.FINAL_DOBLE;</span>
+    }
+
+    // Interpreter: los términos y la conjunción se evalúan sobre una misma entrada.
+    interface Expresion {
+        boolean cumple(Entrada entrada);
+    }
+
+<span class="fc" id="L30">    private record Y(Expresion izquierda, Expresion derecha) implements Expresion {</span>
+        @Override
+        public boolean cumple(Entrada entrada) {
+<span class="fc bfc" id="L33" title="All 4 branches covered.">            return izquierda.cumple(entrada) &amp;&amp; derecha.cumple(entrada);</span>
+        }
+    }
+
+    static Expresion interpretar(String consulta) {
+<span class="fc" id="L38">        String[] terminos = consulta.strip().toLowerCase(Locale.ROOT).split(&quot;\\s+y\\s+&quot;, -1);</span>
+<span class="fc" id="L39">        Expresion expresion = interpretarTermino(terminos[0]);</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">        for (int i = 1; i &lt; terminos.length; i++) {</span>
+<span class="fc" id="L41">            expresion = new Y(expresion, interpretarTermino(terminos[i]));</span>
+        }
+<span class="fc" id="L43">        return expresion;</span>
+    }
+
+    private static Expresion interpretarTermino(String termino) {
+<span class="fc bfc" id="L47" title="All 4 branches covered.">        return switch (termino) {</span>
+<span class="fc" id="L48">            case &quot;exacto&quot; -&gt; entrada -&gt; entrada.pronostico().equals(entrada.resultado());</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">            case &quot;diferencia&quot; -&gt; entrada -&gt; entrada.pronostico().diferencia() == entrada.resultado().diferencia();</span>
+<span class="fc" id="L50">            case &quot;final&quot; -&gt; Entrada::finalPartido;</span>
+<span class="fc" id="L51">            default -&gt; throw new IllegalArgumentException(&quot;Término desconocido: &quot; + termino);</span>
+        };
+    }
+
+    // Bridge: el alcance del reporte y la forma de presentarlo tienen variantes independientes.
+    interface FormatoRanking {
+        String presentar(List&lt;Puesto&gt; puestos);
+    }
+
+<span class="fc" id="L60">    static final class FormatoTexto implements FormatoRanking {</span>
+        @Override
+        public String presentar(List&lt;Puesto&gt; puestos) {
+<span class="fc" id="L63">            return puestos.stream()</span>
+<span class="fc" id="L64">                    .map(puesto -&gt; puesto.participante() + &quot; | puntos &quot; + puesto.puntos() + &quot; | exactos &quot; + puesto.exactos())</span>
+<span class="fc" id="L65">                    .collect(Collectors.joining(&quot;\n&quot;));</span>
+        }
+    }
+
+<span class="fc" id="L69">    static final class FormatoCsv implements FormatoRanking {</span>
+        @Override
+        public String presentar(List&lt;Puesto&gt; puestos) {
+<span class="fc" id="L72">            var filas = new StringJoiner(&quot;\n&quot;).add(&quot;participante,puntos,exactos&quot;);</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">            for (Puesto puesto : puestos) {</span>
+<span class="fc" id="L74">                String nombre = puesto.participante().replace(&quot;\&quot;&quot;, &quot;\&quot;\&quot;&quot;);</span>
+<span class="fc" id="L75">                filas.add(&quot;\&quot;&quot; + nombre + &quot;\&quot;,&quot; + puesto.puntos() + &quot;,&quot; + puesto.exactos());</span>
+<span class="fc" id="L76">            }</span>
+<span class="fc" id="L77">            return filas.toString();</span>
+        }
+    }
+
+    abstract static class ReporteRanking {
+        private final FormatoRanking formato;
+
+<span class="fc" id="L84">        ReporteRanking(FormatoRanking formato) {</span>
+<span class="fc" id="L85">            this.formato = formato;</span>
+<span class="fc" id="L86">        }</span>
+
+        // Template Method: fija el orden de cálculo, selección y presentación.
+        final String generar(Tipo tipo, Collection&lt;String&gt; participantes, List&lt;Entrada&gt; entradas) {
+<span class="fc" id="L90">            List&lt;Puesto&gt; ranking = Puntuacion.ranking(tipo, participantes, entradas);</span>
+<span class="fc" id="L91">            return formato.presentar(seleccionar(ranking));</span>
+        }
+
+        abstract List&lt;Puesto&gt; seleccionar(List&lt;Puesto&gt; ranking);
+    }
+
+    static final class ReporteCompleto extends ReporteRanking {
+        ReporteCompleto(FormatoRanking formato) {
+<span class="fc" id="L99">            super(formato);</span>
+<span class="fc" id="L100">        }</span>
+
+        @Override
+        List&lt;Puesto&gt; seleccionar(List&lt;Puesto&gt; ranking) {
+<span class="fc" id="L104">            return ranking;</span>
+        }
+    }
+
+    static final class ReportePodio extends ReporteRanking {
+        ReportePodio(FormatoRanking formato) {
+<span class="fc" id="L110">            super(formato);</span>
+<span class="fc" id="L111">        }</span>
+
+        @Override
+        List&lt;Puesto&gt; seleccionar(List&lt;Puesto&gt; ranking) {
+<span class="fc" id="L115">            return ranking.stream().limit(3).toList();</span>
+        }
+    }
+
+    // Visitor: el tipo de partido selecciona la operación correspondiente en el visitante.
+    interface VisitantePartido&lt;T&gt; {
+        T visitar(PartidoPendiente partido);
+
+        T visitar(PartidoPublicado partido);
+    }
+
+    interface Partido {
+        &lt;T&gt; T aceptar(VisitantePartido&lt;T&gt; visitante);
+    }
+
+<span class="fc" id="L130">    record Pronostico(String participante, Marcador marcador) {}</span>
+
+<span class="fc" id="L132">    record PartidoPendiente(List&lt;Pronostico&gt; pronosticos) implements Partido {</span>
+        @Override
+        public &lt;T&gt; T aceptar(VisitantePartido&lt;T&gt; visitante) {
+<span class="fc" id="L135">            return visitante.visitar(this);</span>
+        }
+    }
+
+<span class="fc" id="L139">    record PartidoPublicado(List&lt;Pronostico&gt; pronosticos, Marcador resultado, boolean finalPartido) implements Partido {</span>
+        @Override
+        public &lt;T&gt; T aceptar(VisitantePartido&lt;T&gt; visitante) {
+<span class="fc" id="L142">            return visitante.visitar(this);</span>
+        }
+    }
+
+<span class="fc" id="L146">    static final class EstadoPublicacion implements VisitantePartido&lt;String&gt; {</span>
+        @Override
+        public String visitar(PartidoPendiente partido) {
+<span class="fc" id="L149">            return &quot;pendiente (&quot; + partido.pronosticos().size() + &quot;)&quot;;</span>
+        }
+
+        @Override
+        public String visitar(PartidoPublicado partido) {
+<span class="fc" id="L154">            Marcador resultado = partido.resultado();</span>
+<span class="fc" id="L155">            return &quot;publicado &quot; + resultado.local() + &quot;-&quot; + resultado.visitante() + &quot; (&quot; + partido.pronosticos().size() + &quot;)&quot;;</span>
+        }
+    }
+
+<span class="fc" id="L159">    static final class EntradasOficiales implements VisitantePartido&lt;List&lt;Entrada&gt;&gt; {</span>
+        @Override
+        public List&lt;Entrada&gt; visitar(PartidoPendiente partido) {
+<span class="fc" id="L162">            return List.of();</span>
+        }
+
+        @Override
+        public List&lt;Entrada&gt; visitar(PartidoPublicado partido) {
+<span class="fc" id="L167">            return partido.pronosticos().stream()</span>
+<span class="fc" id="L168">                    .map(pronostico -&gt; new Entrada(pronostico.participante(), pronostico.marcador(),</span>
+<span class="fc" id="L169">                            partido.resultado(), partido.finalPartido()))</span>
+<span class="fc" id="L170">                    .toList();</span>
+        }
+    }
+
+    // Mediator: la mesa y la pantalla solo se comunican con el coordinador.
+<span class="fc" id="L175">    record MesaResultados(MediadorResultados mediador) {</span>
+        void publicar(List&lt;Entrada&gt; entradas) {
+<span class="fc" id="L177">            mediador.publicar(entradas);</span>
+<span class="fc" id="L178">        }</span>
+    }
+
+    static final class PantallaRanking {
+        private final MediadorResultados mediador;
+        private String texto;
+
+<span class="fc" id="L185">        PantallaRanking(MediadorResultados mediador) {</span>
+<span class="fc" id="L186">            this.mediador = mediador;</span>
+<span class="fc" id="L187">        }</span>
+
+        void seleccionar(ReporteRanking reporte) {
+<span class="fc" id="L190">            mediador.seleccionar(reporte);</span>
+<span class="fc" id="L191">        }</span>
+
+        String texto() {
+<span class="fc" id="L194">            return texto;</span>
+        }
+    }
+
+    static final class MediadorResultados {
+<span class="fc" id="L199">        private final MesaResultados mesa = new MesaResultados(this);</span>
+<span class="fc" id="L200">        private final PantallaRanking pantalla = new PantallaRanking(this);</span>
+        private final Tipo tipo;
+        private final List&lt;String&gt; participantes;
+        private ReporteRanking reporte;
+        private List&lt;Entrada&gt; entradas;
+
+<span class="fc" id="L206">        MediadorResultados(Tipo tipo, List&lt;String&gt; participantes, ReporteRanking reporte) {</span>
+<span class="fc" id="L207">            this.tipo = tipo;</span>
+<span class="fc" id="L208">            this.participantes = List.copyOf(participantes);</span>
+<span class="fc" id="L209">            actualizar(reporte, List.of());</span>
+<span class="fc" id="L210">        }</span>
+
+        MesaResultados mesa() {
+<span class="fc" id="L213">            return mesa;</span>
+        }
+
+        PantallaRanking pantalla() {
+<span class="fc" id="L217">            return pantalla;</span>
+        }
+
+        private void publicar(List&lt;Entrada&gt; nuevasEntradas) {
+<span class="fc" id="L221">            actualizar(reporte, List.copyOf(nuevasEntradas));</span>
+<span class="fc" id="L222">        }</span>
+
+        private void seleccionar(ReporteRanking nuevoReporte) {
+<span class="fc" id="L225">            actualizar(nuevoReporte, entradas);</span>
+<span class="fc" id="L226">        }</span>
+
+        private void actualizar(ReporteRanking reporte, List&lt;Entrada&gt; entradas) {
+<span class="fc" id="L229">            pantalla.texto = reporte.generar(tipo, participantes, entradas);</span>
+<span class="fc" id="L230">            this.reporte = reporte;</span>
+<span class="fc" id="L231">            this.entradas = entradas;</span>
+<span class="fc" id="L232">        }</span>
+    }
+
+    public static void main(String[] args) {
+<span class="nc" id="L236">        List&lt;String&gt; participantes = List.of(&quot;Ana&quot;, &quot;Eva&quot;, &quot;Luis&quot;, &quot;Mora&quot;);</span>
+<span class="nc" id="L237">        List&lt;Partido&gt; partidos = List.of(</span>
+<span class="nc" id="L238">                new PartidoPublicado(List.of(</span>
+                        new Pronostico(&quot;Ana&quot;, new Marcador(2, 1)),
+                        new Pronostico(&quot;Luis&quot;, new Marcador(1, 0)),
+                        new Pronostico(&quot;Eva&quot;, new Marcador(3, 0))), new Marcador(2, 1), true),
+<span class="nc" id="L242">                new PartidoPendiente(List.of(new Pronostico(&quot;Mora&quot;, new Marcador(2, 0)))));</span>
+
+<span class="nc" id="L244">        var estados = new EstadoPublicacion();</span>
+<span class="nc" id="L245">        var oficiales = new EntradasOficiales();</span>
+<span class="nc" id="L246">        System.out.println(&quot;Visitor · estado de cada partido y cantidad de pronósticos&quot;);</span>
+<span class="nc" id="L247">        partidos.forEach(partido -&gt; System.out.println(partido.aceptar(estados)));</span>
+<span class="nc" id="L248">        List&lt;Entrada&gt; entradas = partidos.stream().flatMap(partido -&gt; partido.aceptar(oficiales).stream()).toList();</span>
+
+<span class="nc" id="L250">        String consulta = &quot;diferencia y final&quot;;</span>
+<span class="nc" id="L251">        Expresion expresion = interpretar(consulta);</span>
+<span class="nc" id="L252">        System.out.println(&quot;\nInterpreter · &quot; + consulta);</span>
+<span class="nc" id="L253">        System.out.println(entradas.stream().filter(expresion::cumple).map(Entrada::participante).toList());</span>
+
+<span class="nc" id="L255">        Tipo regla = Configuracion.INSTANCIA.regla;</span>
+<span class="nc" id="L256">        System.out.println(&quot;\nSingleton · regla del laboratorio &quot; + regla);</span>
+<span class="nc" id="L257">        var mediador = new MediadorResultados(regla, participantes, new ReporteCompleto(new FormatoTexto()));</span>
+<span class="nc" id="L258">        mediador.mesa().publicar(entradas);</span>
+<span class="nc" id="L259">        System.out.println(&quot;\nMediator · la mesa actualiza el ranking&quot;);</span>
+<span class="nc" id="L260">        System.out.println(mediador.pantalla().texto());</span>
+
+<span class="nc" id="L262">        mediador.pantalla().seleccionar(new ReportePodio(new FormatoCsv()));</span>
+<span class="nc" id="L263">        System.out.println(&quot;\nBridge y Template Method · podio en CSV&quot;);</span>
+<span class="nc" id="L264">        System.out.println(mediador.pantalla().texto());</span>
+<span class="nc" id="L265">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.16.202610240946</span></div></body></html>

@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProdeDatos.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">IngSoftwareDemo</a> &gt; <a href="index.source.html" class="el_package">ar.edu.ingsoftware.prode</a> &gt; <span class="el_source">ProdeDatos.java</span></div><h1>ProdeDatos.java</h1><pre class="source lang-java linenums">package ar.edu.ingsoftware.prode;
+
+import ar.edu.ingsoftware.prode.ProdeService.Equipo;
+import ar.edu.ingsoftware.prode.ProdeService.EstadoPartido;
+import ar.edu.ingsoftware.prode.ProdeService.EstadoTorneo;
+import ar.edu.ingsoftware.prode.ProdeService.Partido;
+import ar.edu.ingsoftware.prode.ProdeService.Prediccion;
+import ar.edu.ingsoftware.prode.ProdeService.Torneo;
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion.Entrada;
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion.Marcador;
+import ar.edu.ingsoftware.prode.puntaje.Puntuacion.Tipo;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.stereotype.Repository;
+
+@Repository
+class ProdeDatos {
+<span class="fc" id="L27">    private static final RowMapper&lt;Torneo&gt; TORNEO = (rs, row) -&gt; new Torneo(</span>
+<span class="fc" id="L28">            rs.getLong(&quot;id&quot;), rs.getString(&quot;nombre&quot;), rs.getString(&quot;descripcion&quot;),</span>
+<span class="fc" id="L29">            rs.getObject(&quot;inicio&quot;, LocalDate.class), rs.getObject(&quot;fin&quot;, LocalDate.class),</span>
+<span class="fc" id="L30">            EstadoTorneo.valueOf(rs.getString(&quot;estado&quot;)), Tipo.valueOf(rs.getString(&quot;regla&quot;)));</span>
+
+<span class="fc" id="L32">    private static final RowMapper&lt;Equipo&gt; EQUIPO = (rs, row) -&gt; new Equipo(</span>
+<span class="fc" id="L33">            rs.getLong(&quot;id&quot;), rs.getLong(&quot;torneo_id&quot;), rs.getString(&quot;nombre&quot;));</span>
+
+<span class="fc" id="L35">    private static final RowMapper&lt;Partido&gt; PARTIDO = (rs, row) -&gt; {</span>
+<span class="fc" id="L36">        var estado = EstadoPartido.valueOf(rs.getString(&quot;estado&quot;));</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">        Marcador resultado = estado == EstadoPartido.FINALIZADO</span>
+<span class="fc" id="L38">                ? new Marcador(rs.getInt(&quot;resultado_local&quot;), rs.getInt(&quot;resultado_visitante&quot;)) : null;</span>
+<span class="fc" id="L39">        return new Partido(rs.getLong(&quot;id&quot;), rs.getLong(&quot;torneo_id&quot;), rs.getLong(&quot;local_id&quot;),</span>
+<span class="fc" id="L40">                rs.getLong(&quot;visitante_id&quot;), instante(rs, &quot;inicio&quot;), instante(rs, &quot;cierre&quot;),</span>
+<span class="fc" id="L41">                estado, rs.getBoolean(&quot;es_final&quot;), resultado);</span>
+    };
+
+    private final JdbcClient db;
+
+<span class="fc" id="L46">    ProdeDatos(JdbcClient db) {</span>
+<span class="fc" id="L47">        this.db = db;</span>
+<span class="fc" id="L48">    }</span>
+
+    Optional&lt;String&gt; rol(String email) {
+<span class="fc" id="L51">        return db.sql(&quot;SELECT rol FROM cuentas WHERE email = ?&quot;).param(email).query(String.class).optional();</span>
+    }
+
+    List&lt;Torneo&gt; torneos() {
+<span class="fc" id="L55">        return db.sql(&quot;SELECT * FROM torneos ORDER BY inicio, nombre, id&quot;).query(TORNEO).list();</span>
+    }
+
+    Optional&lt;Torneo&gt; torneo(long id) {
+<span class="fc" id="L59">        return db.sql(&quot;SELECT * FROM torneos WHERE id = ?&quot;).param(id).query(TORNEO).optional();</span>
+    }
+
+    Optional&lt;Torneo&gt; bloquearTorneo(long id) {
+<span class="fc" id="L63">        return db.sql(&quot;SELECT * FROM torneos WHERE id = ? FOR UPDATE&quot;).param(id).query(TORNEO).optional();</span>
+    }
+
+    long crearTorneo(Torneo torneo) {
+<span class="fc" id="L67">        return insertar(db.sql(&quot;&quot;&quot;</span>
+                INSERT INTO torneos (nombre, descripcion, inicio, fin, estado, regla)
+                VALUES (?, ?, ?, ?, ?, ?)&quot;&quot;&quot;)
+<span class="fc" id="L70">                .params(torneo.nombre(), torneo.descripcion(), torneo.inicio(), torneo.fin(),</span>
+<span class="fc" id="L71">                        torneo.estado().name(), torneo.regla().name()));</span>
+    }
+
+    void actualizarTorneo(Torneo torneo) {
+<span class="fc" id="L75">        db.sql(&quot;UPDATE torneos SET nombre=?, descripcion=?, inicio=?, fin=?, estado=?, regla=? WHERE id=?&quot;)</span>
+<span class="fc" id="L76">                .params(torneo.nombre(), torneo.descripcion(), torneo.inicio(), torneo.fin(),</span>
+<span class="fc" id="L77">                        torneo.estado().name(), torneo.regla().name(), torneo.id()).update();</span>
+<span class="fc" id="L78">    }</span>
+
+    List&lt;Equipo&gt; equipos(long torneoId) {
+<span class="fc" id="L81">        return db.sql(&quot;SELECT * FROM equipos WHERE torneo_id = ? ORDER BY nombre&quot;)</span>
+<span class="fc" id="L82">                .param(torneoId).query(EQUIPO).list();</span>
+    }
+
+    boolean existeEquipo(long torneoId, long equipoId) {
+<span class="fc" id="L86">        return db.sql(&quot;SELECT id FROM equipos WHERE torneo_id = ? AND id = ?&quot;)</span>
+<span class="fc" id="L87">                .params(torneoId, equipoId).query(Long.class).optional().isPresent();</span>
+    }
+
+    long crearEquipo(long torneo, String nombre) {
+<span class="fc" id="L91">        return insertar(db.sql(&quot;INSERT INTO equipos (torneo_id, nombre) VALUES (?, ?)&quot;).params(torneo, nombre));</span>
+    }
+
+    void actualizarEquipo(long torneo, long equipo, String nombre) {
+<span class="nc" id="L95">        db.sql(&quot;UPDATE equipos SET nombre=? WHERE torneo_id=? AND id=?&quot;).params(nombre, torneo, equipo).update();</span>
+<span class="nc" id="L96">    }</span>
+
+    List&lt;Partido&gt; partidos(long torneoId) {
+<span class="fc" id="L99">        return db.sql(&quot;SELECT * FROM partidos WHERE torneo_id = ? ORDER BY inicio, id&quot;)</span>
+<span class="fc" id="L100">                .param(torneoId).query(PARTIDO).list();</span>
+    }
+
+    Optional&lt;Partido&gt; partido(long torneoId, long partidoId) {
+<span class="fc" id="L104">        return db.sql(&quot;SELECT * FROM partidos WHERE torneo_id = ? AND id = ?&quot;)</span>
+<span class="fc" id="L105">                .params(torneoId, partidoId).query(PARTIDO).optional();</span>
+    }
+
+    long crearPartido(long torneo, long local, long visitante, Instant inicio, boolean esFinal) {
+<span class="fc" id="L109">        return insertar(db.sql(&quot;&quot;&quot;</span>
+                INSERT INTO partidos (torneo_id, local_id, visitante_id, inicio, cierre, estado, es_final)
+                VALUES (?, ?, ?, ?, ?, 'PROXIMO', ?)&quot;&quot;&quot;)
+<span class="fc" id="L112">                .params(torneo, local, visitante, utc(inicio), utc(inicio), esFinal));</span>
+    }
+
+    void reprogramar(Partido partido, Instant inicio, Instant cierre) {
+<span class="fc" id="L116">        db.sql(&quot;UPDATE partidos SET inicio=?, cierre=?, estado='PROXIMO' WHERE id=?&quot;)</span>
+<span class="fc" id="L117">                .params(utc(inicio), utc(cierre), partido.id()).update();</span>
+<span class="fc" id="L118">    }</span>
+
+    void estadoPartido(long id, EstadoPartido estado) {
+<span class="fc" id="L121">        db.sql(&quot;UPDATE partidos SET estado=? WHERE id=?&quot;).params(estado.name(), id).update();</span>
+<span class="fc" id="L122">    }</span>
+
+    void resultado(long id, Marcador resultado) {
+<span class="fc" id="L125">        db.sql(&quot;UPDATE partidos SET resultado_local=?, resultado_visitante=?, estado='FINALIZADO' WHERE id=?&quot;)</span>
+<span class="fc" id="L126">                .params(resultado.local(), resultado.visitante(), id).update();</span>
+<span class="fc" id="L127">    }</span>
+
+    boolean inscrito(long torneo, String email) {
+<span class="fc" id="L130">        return db.sql(&quot;SELECT id FROM inscripciones WHERE torneo_id=? AND email=?&quot;)</span>
+<span class="fc" id="L131">                .params(torneo, email).query(Long.class).optional().isPresent();</span>
+    }
+
+    void inscribir(long torneo, String email) {
+<span class="fc" id="L135">        db.sql(&quot;INSERT INTO inscripciones (torneo_id, email) VALUES (?, ?)&quot;).params(torneo, email).update();</span>
+<span class="fc" id="L136">    }</span>
+
+    Optional&lt;Prediccion&gt; prediccion(long partido, String email) {
+<span class="fc" id="L139">        return db.sql(&quot;SELECT * FROM predicciones WHERE partido_id=? AND email=?&quot;)</span>
+<span class="fc" id="L140">                .params(partido, email)</span>
+<span class="fc" id="L141">                .query((rs, row) -&gt; new Prediccion(new Marcador(rs.getInt(&quot;goles_local&quot;),</span>
+<span class="fc" id="L142">                        rs.getInt(&quot;goles_visitante&quot;)), instante(rs, &quot;creada&quot;), instante(rs, &quot;actualizada&quot;)))</span>
+<span class="fc" id="L143">                .optional();</span>
+    }
+
+    void altaPrediccion(long torneo, long partido, String email, Marcador marcador, Instant ahora) {
+<span class="fc" id="L147">        db.sql(&quot;&quot;&quot;</span>
+                INSERT INTO predicciones (torneo_id, partido_id, email, goles_local, goles_visitante, creada, actualizada)
+                VALUES (?, ?, ?, ?, ?, ?, ?)&quot;&quot;&quot;)
+<span class="fc" id="L150">                .params(torneo, partido, email, marcador.local(), marcador.visitante(), utc(ahora), utc(ahora)).update();</span>
+<span class="fc" id="L151">    }</span>
+
+    void editarPrediccion(long partido, String email, Marcador marcador, Instant ahora) {
+<span class="fc" id="L154">        db.sql(&quot;UPDATE predicciones SET goles_local=?, goles_visitante=?, actualizada=? WHERE partido_id=? AND email=?&quot;)</span>
+<span class="fc" id="L155">                .params(marcador.local(), marcador.visitante(), utc(ahora), partido, email).update();</span>
+<span class="fc" id="L156">    }</span>
+
+    List&lt;String&gt; participantes(long torneo) {
+<span class="fc" id="L159">        return db.sql(&quot;SELECT id FROM inscripciones WHERE torneo_id=?&quot;).param(torneo)</span>
+<span class="fc" id="L160">                .query((rs, row) -&gt; alias(rs.getLong(&quot;id&quot;))).list();</span>
+    }
+
+    List&lt;Entrada&gt; entradasRanking(long torneo) {
+<span class="fc" id="L164">        return db.sql(&quot;&quot;&quot;</span>
+                SELECT i.id AS inscripcion_id, p.goles_local, p.goles_visitante,
+                    m.resultado_local, m.resultado_visitante, m.es_final
+                FROM predicciones p
+                JOIN partidos m ON m.id = p.partido_id
+                JOIN inscripciones i ON i.torneo_id = p.torneo_id AND i.email = p.email
+                WHERE p.torneo_id = ? AND m.estado = 'FINALIZADO'&quot;&quot;&quot;)
+<span class="fc" id="L171">                .param(torneo)</span>
+<span class="fc" id="L172">                .query((rs, row) -&gt; new Entrada(alias(rs.getLong(&quot;inscripcion_id&quot;)),</span>
+<span class="fc" id="L173">                        new Marcador(rs.getInt(&quot;goles_local&quot;), rs.getInt(&quot;goles_visitante&quot;)),</span>
+<span class="fc" id="L174">                        new Marcador(rs.getInt(&quot;resultado_local&quot;), rs.getInt(&quot;resultado_visitante&quot;)),</span>
+<span class="fc" id="L175">                        rs.getBoolean(&quot;es_final&quot;))).list();</span>
+    }
+
+    private static long insertar(JdbcClient.StatementSpec sentencia) {
+<span class="fc" id="L179">        var clave = new GeneratedKeyHolder();</span>
+<span class="fc" id="L180">        sentencia.update(clave, &quot;id&quot;);</span>
+<span class="fc" id="L181">        Long id = clave.getKeyAs(Long.class);</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L183">            throw new IllegalStateException(&quot;La base no devolvió el identificador generado&quot;);</span>
+        }
+<span class="fc" id="L185">        return id;</span>
+    }
+
+    private static Instant instante(ResultSet rs, String columna) throws SQLException {
+<span class="fc" id="L189">        return rs.getObject(columna, OffsetDateTime.class).toInstant();</span>
+    }
+
+    private static OffsetDateTime utc(Instant instante) {
+<span class="fc" id="L193">        return instante.atOffset(ZoneOffset.UTC);</span>
+    }
+
+    private static String alias(long id) {
+<span class="fc" id="L197">        return &quot;Jugador &quot; + id;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.16.202610240946</span></div></body></html>
