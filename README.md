@@ -4,7 +4,7 @@ Prototipo web en Java para el Parcial 2 de Ingeniería en Software. El recorrido
 
 ## Arrancar en tu máquina
 
-Necesitás Git, JDK **21** y Maven **3.9**. Verificá que `mvn --version` indique Java 21. Con acceso al repositorio, ejecutá:
+Necesitás Git, JDK **21** y Maven **3.9**. Verificá que `mvn --version` indique Java 21. Podés clonar el repositorio público y ejecutar los controles sin iniciar sesión.
 
 ```sh
 git clone https://github.com/Niquinhoo/IngSoftwareDemo.git
@@ -54,13 +54,14 @@ java -cp target/classes ar.edu.ingsoftware.prode.puntaje.laboratorio.Laboratorio
 
 | Control | Cómo ejecutarlo | Resultado |
 | --- | --- | --- |
+| Integridad con Maven Enforcer | `mvn -B validate` | Versión de Java y convergencia de dependencias verificadas |
+| Lint con PMD y duplicación con CPD | `mvn -B verify` | `target/pmd.xml` y `target/cpd.xml` |
 | JUnit y cobertura JaCoCo | `mvn -B verify` | `target/surefire-reports/` y `target/site/jacoco/index.html` |
 | SAST con SpotBugs y Find Security Bugs | `mvn -B verify -Psast` | `target/spotbugsXml.xml` |
 | Inventario CycloneDX | `mvn -B verify -Psca` | `target/bom.json`, con dependencias directas, transitivas y de pruebas |
 | SCA con OSV-Scanner 2 | `osv-scanner scan source -L target/bom.json` | Coincidencias entre el inventario y avisos conocidos |
-| SonarQube Community Build y SonarQube for IDE, antes SonarLint | Seguí la [guía de calidad](docs/03-deuda-y-calidad.md) | Métricas de código y observaciones del IDE |
 
-[Guía de SCA y SAST](docs/04-sca-y-sast.md) · [Workflow de verificación](.github/workflows/verificacion.yml) · [20 casos de puntuación](src/test/java/ar/edu/ingsoftware/prode/puntaje/PuntuacionTest.java)
+Maven ejecuta los controles de calidad localmente y descarga sus dependencias de Maven Central. OSV-Scanner consulta un catálogo público de avisos. [Guía de calidad](docs/03-deuda-y-calidad.md) · [Guía de SCA y SAST](docs/04-sca-y-sast.md) · [Workflow de verificación](.github/workflows/verificacion.yml) · [20 casos de puntuación](src/test/java/ar/edu/ingsoftware/prode/puntaje/PuntuacionTest.java)
 
 ## Trabajo en equipo
 

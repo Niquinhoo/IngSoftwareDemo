@@ -22,7 +22,7 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Probar, medir cobertura y ejecutar SAST
+      - name: Verificar integridad, ejecutar pruebas, lint y SAST
         run: mvn -B -ntp verify -Psast,sca
       - name: Analizar dependencias con OSV-Scanner
         run: |
@@ -41,6 +41,8 @@ jobs:
           path: |
             target/surefire-reports/
             target/site/jacoco/
+            target/pmd.xml
+            target/cpd.xml
             target/spotbugsXml.xml
             target/bom.json
             target/osv.json

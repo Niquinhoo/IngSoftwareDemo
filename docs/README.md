@@ -6,7 +6,7 @@ El Prode permite organizar torneos, inscribirse, guardar pronósticos y comparar
 | --- | --- | --- |
 | [Jira y ceremonias](01-jira-y-scrum.md) | Persona 1 | Objetivo del sprint, historia con criterios y Definition of Done |
 | [Proceso y prototipo](02-proceso-y-prototipo.md) | Persona 2 | Demostración de punta a punta con dos roles y un cierre |
-| [Deuda técnica y SonarQube](03-deuda-y-calidad.md) | Persona 3 | Reporte de JaCoCo y ficha de una observación de calidad |
+| [Deuda técnica y calidad local](03-deuda-y-calidad.md) | Persona 3 | Reportes de PMD, CPD y JaCoCo y ficha de una observación de calidad |
 | [SCA y SAST de código abierto](04-sca-y-sast.md) | Persona 4 | Inventario de dependencias, alcance y salida de los escáneres disponibles |
 | [Patrones de diseño](05-patrones.md) | Personas 5 y 6 | Comparación de puntajes, recorrido del resultado y un ejemplo del laboratorio |
 | [Principios SOLID](06-solid.md) | Persona 7 | Contrato de puntaje y ejercicio de diseño |
